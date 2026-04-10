@@ -15,14 +15,45 @@
       "_type": "kimi",
       "cookie": "YOUR_KIMI_COOKIE_HERE"
     },
+    "chatgpt": {
+      "_type": "chatgpt",
+      "cookie": "YOUR_CHATGPT_COOKIE_HERE"
+    },
+    "gemini": {
+      "_type": "gemini",
+      "cookie": "YOUR_GEMINI_COOKIE_HERE"
+    },
+    "grok": {
+      "_type": "grok",
+      "cookie": "YOUR_GROK_COOKIE_HERE"
+    },
+    "qwen": {
+      "_type": "qwen",
+      "cookie": "YOUR_QWEN_COOKIE_HERE"
+    },
+    "qwen-cn": {
+      "_type": "qwen-cn",
+      "cookie": "YOUR_QWEN_CN_COOKIE_HERE"
+    },
+    "glm": {
+      "_type": "glm",
+      "cookie": "YOUR_GLM_COOKIE_HERE"
+    },
+    "glm-intl": {
+      "_type": "glm-intl",
+      "cookie": "YOUR_GLM_INTL_COOKIE_HERE"
+    },
+    "doubao": {
+      "_type": "doubao",
+      "cookie": "YOUR_DOUBAO_COOKIE_HERE"
+    },
+    "perplexity": {
+      "_type": "perplexity",
+      "cookie": "YOUR_PERPLEXITY_COOKIE_HERE"
+    },
     "ollama": {
       "_type": "ollama",
       "baseUrl": "http://localhost:11434"
-    },
-    "vllm": {
-      "_type": "openai-compat",
-      "baseUrl": "http://localhost:8000",
-      "apiKey": "no-key"
     }
   },
   "modelMapping": {
@@ -30,14 +61,40 @@
     "deepseek-reasoner": "deepseek",
     "deepseek-chat-search": "deepseek",
     "deepseek-reasoner-search": "deepseek",
+    "deepseek*": "deepseek",
     "claude-sonnet-4-6": "claude",
     "claude-opus-4-6": "claude",
     "claude-haiku-4-6": "claude",
+    "claude*": "claude",
     "moonshot-v1-8k": "kimi",
     "moonshot-v1-32k": "kimi",
     "moonshot-v1-128k": "kimi",
+    "moonshot*": "kimi",
+    "gpt-4": "chatgpt",
+    "gpt-4-turbo": "chatgpt",
+    "gpt-3.5-turbo": "chatgpt",
+    "gpt*": "chatgpt",
+    "gemini-pro": "gemini",
+    "gemini-ultra": "gemini",
+    "gemini*": "gemini",
+    "grok-1": "grok",
+    "grok-2": "grok",
+    "grok*": "grok",
+    "qwen3.5-plus": "qwen",
+    "qwen3.5-turbo": "qwen",
+    "Qwen3.5-Plus": "qwen-cn",
+    "Qwen3.5-Turbo": "qwen-cn",
+    "qwen*": "qwen",
+    "glm-4-plus": "glm",
+    "glm-4-think": "glm",
+    "glm*": "glm",
+    "doubao-seed-2.0": "doubao",
+    "doubao-pro": "doubao",
+    "doubao*": "doubao",
+    "perplexity-web": "perplexity",
+    "perplexity-pro": "perplexity",
+    "perplexity*": "perplexity",
     "llama3": "ollama",
-    "qwen2.5": "ollama",
-    "deepseek*": "deepseek"
+    "qwen2.5": "ollama"
   }
 }

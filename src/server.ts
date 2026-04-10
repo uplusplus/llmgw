@@ -12,6 +12,17 @@ import { DeepSeekProvider } from "./providers/deepseek.js";
 import { ClaudeProvider } from "./providers/claude.js";
 import { KimiProvider } from "./providers/kimi.js";
 import { OpenAICompatProvider } from "./providers/openai-compat.js";
+import {
+  ChatGPTPlaywrightProvider,
+  GeminiPlaywrightProvider,
+  GrokPlaywrightProvider,
+  QwenPlaywrightProvider,
+  QwenCNPlaywrightProvider,
+  GlmPlaywrightProvider,
+  GlmIntlPlaywrightProvider,
+  DoubaoPlaywrightProvider,
+  PerplexityPlaywrightProvider,
+} from "./providers/playwright/index.js";
 
 // ── Provider registry ──────────────────────────────────────────────
 
@@ -19,12 +30,24 @@ import { OpenAICompatProvider } from "./providers/openai-compat.js";
 type ProviderFactory = (config: any) => ProviderAdapter;
 
 const providerFactories: Record<string, ProviderFactory> = {
+  // HTTP-based providers (no browser needed)
   deepseek: (cfg) => new DeepSeekProvider(cfg),
   claude: (cfg) => new ClaudeProvider(cfg),
   kimi: (cfg) => new KimiProvider(cfg),
   "openai-compat": (cfg) => new OpenAICompatProvider(cfg),
   ollama: (cfg) => new OpenAICompatProvider({ ...cfg, baseUrl: cfg.baseUrl || "http://localhost:11434" }),
   vllm: (cfg) => new OpenAICompatProvider({ ...cfg, baseUrl: cfg.baseUrl || "http://localhost:8000" }),
+
+  // Playwright-based providers (require browser)
+  chatgpt: (cfg) => new ChatGPTPlaywrightProvider(cfg),
+  gemini: (cfg) => new GeminiPlaywrightProvider(cfg),
+  grok: (cfg) => new GrokPlaywrightProvider(cfg),
+  qwen: (cfg) => new QwenPlaywrightProvider(cfg),
+  "qwen-cn": (cfg) => new QwenCNPlaywrightProvider(cfg),
+  glm: (cfg) => new GlmPlaywrightProvider(cfg),
+  "glm-intl": (cfg) => new GlmIntlPlaywrightProvider(cfg),
+  doubao: (cfg) => new DoubaoPlaywrightProvider(cfg),
+  perplexity: (cfg) => new PerplexityPlaywrightProvider(cfg),
 };
 
 function createProviders(gwConfig: GatewayConfig): Map<string, ProviderAdapter> {

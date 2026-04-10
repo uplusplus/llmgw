@@ -1,0 +1,43 @@
+{
+  "port": 3456,
+  "apiKey": "your-api-key-here",
+  "providers": {
+    "deepseek": {
+      "_type": "deepseek",
+      "cookie": "YOUR_DEEPSEEK_COOKIE_HERE"
+    },
+    "claude": {
+      "_type": "claude",
+      "cookie": "YOUR_CLAUDE_COOKIE_HERE",
+      "organizationId": "YOUR_ORG_UUID"
+    },
+    "kimi": {
+      "_type": "kimi",
+      "cookie": "YOUR_KIMI_COOKIE_HERE"
+    },
+    "ollama": {
+      "_type": "ollama",
+      "baseUrl": "http://localhost:11434"
+    },
+    "vllm": {
+      "_type": "openai-compat",
+      "baseUrl": "http://localhost:8000",
+      "apiKey": "no-key"
+    }
+  },
+  "modelMapping": {
+    "deepseek-chat": "deepseek",
+    "deepseek-reasoner": "deepseek",
+    "deepseek-chat-search": "deepseek",
+    "deepseek-reasoner-search": "deepseek",
+    "claude-sonnet-4-6": "claude",
+    "claude-opus-4-6": "claude",
+    "claude-haiku-4-6": "claude",
+    "moonshot-v1-8k": "kimi",
+    "moonshot-v1-32k": "kimi",
+    "moonshot-v1-128k": "kimi",
+    "llama3": "ollama",
+    "qwen2.5": "ollama",
+    "deepseek*": "deepseek"
+  }
+}

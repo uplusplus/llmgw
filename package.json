@@ -1,0 +1,15 @@
+{
+  "name": "zero-token-gateway",
+  "version": "1.0.0",
+  "description": "OpenAI-compatible API gateway for zero-token LLM access via browser-based providers",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    "tsx": "^4.16.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  }
+}

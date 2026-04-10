@@ -12,6 +12,7 @@ import { DeepSeekProvider } from "./providers/deepseek.js";
 import { ClaudeProvider } from "./providers/claude.js";
 import { KimiProvider } from "./providers/kimi.js";
 import { OpenAICompatProvider } from "./providers/openai-compat.js";
+import { XiaomiMimoProvider } from "./providers/xiaomimo.js";
 import {
   ChatGPTPlaywrightProvider,
   GeminiPlaywrightProvider,
@@ -22,6 +23,7 @@ import {
   GlmIntlPlaywrightProvider,
   DoubaoPlaywrightProvider,
   PerplexityPlaywrightProvider,
+  KimiPlaywrightProvider,
 } from "./providers/playwright/index.js";
 
 // ── Provider registry ──────────────────────────────────────────────
@@ -37,6 +39,7 @@ const providerFactories: Record<string, ProviderFactory> = {
   "openai-compat": (cfg) => new OpenAICompatProvider(cfg),
   ollama: (cfg) => new OpenAICompatProvider({ ...cfg, baseUrl: cfg.baseUrl || "http://localhost:11434" }),
   vllm: (cfg) => new OpenAICompatProvider({ ...cfg, baseUrl: cfg.baseUrl || "http://localhost:8000" }),
+  xiaomimo: (cfg) => new XiaomiMimoProvider(cfg),
 
   // Playwright-based providers (require browser)
   chatgpt: (cfg) => new ChatGPTPlaywrightProvider(cfg),
@@ -48,6 +51,7 @@ const providerFactories: Record<string, ProviderFactory> = {
   "glm-intl": (cfg) => new GlmIntlPlaywrightProvider(cfg),
   doubao: (cfg) => new DoubaoPlaywrightProvider(cfg),
   perplexity: (cfg) => new PerplexityPlaywrightProvider(cfg),
+  "kimi-pw": (cfg) => new KimiPlaywrightProvider(cfg),
 };
 
 function createProviders(gwConfig: GatewayConfig): Map<string, ProviderAdapter> {

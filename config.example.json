@@ -51,6 +51,14 @@
       "_type": "perplexity",
       "cookie": "YOUR_PERPLEXITY_COOKIE_HERE"
     },
+    "xiaomimo": {
+      "_type": "xiaomimo",
+      "cookie": "YOUR_XIAOMIMO_COOKIE_HERE"
+    },
+    "kimi-pw": {
+      "_type": "kimi-pw",
+      "cookie": "YOUR_KIMI_COOKIE_HERE"
+    },
     "ollama": {
       "_type": "ollama",
       "baseUrl": "http://localhost:11434"
@@ -94,6 +102,10 @@
     "perplexity-web": "perplexity",
     "perplexity-pro": "perplexity",
     "perplexity*": "perplexity",
+    "xiaomimo-chat": "xiaomimo",
+    "mimo-v2-pro": "xiaomimo",
+    "xiaomimo*": "xiaomimo",
+    "kimi-pw*": "kimi-pw",
     "llama3": "ollama",
     "qwen2.5": "ollama"
   }

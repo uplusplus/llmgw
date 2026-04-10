@@ -1,0 +1,123 @@
+# llmgw — OpenAI-compatible gateway for browser-driven LLM providers
+# Zero API token cost via cookie/session auth through Playwright CDP
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+browser:
+  defaultProfile: "default"
+  profiles:
+    default:
+      name: "default"
+      cdpPort: 9222
+      mode: headless  # launch | headless | attach
+
+providers:
+  # ── Web-based providers (cookie auth, no API key needed) ──
+
+  - id: deepseek-web
+    enabled: true
+    profile: default
+    auth: '{"cookie":"YOUR_DEEPSEEK_COOKIE"}'
+
+  - id: claude-web
+    enabled: false
+    profile: default
+    auth: '{"cookie":"YOUR_CLAUDE_COOKIE","organizationId":"YOUR_ORG_UUID"}'
+
+  - id: kimi-web
+    enabled: false
+    profile: default
+    auth: '{"cookie":"kimi-auth=YOUR_TOKEN","accessToken":"YOUR_ACCESS_TOKEN"}'
+
+  - id: doubao-web
+    enabled: false
+    profile: default
+    auth: '{"sessionid":"YOUR_SESSIONID","ttwid":"YOUR_TTWID"}'
+
+  - id: xiaomimo-web
+    enabled: false
+    profile: default
+    auth: '{"cookie":"YOUR_XIAOMIMO_COOKIE"}'
+
+  - id: qwen-web
+    enabled: false
+    profile: default
+    auth: '{"cookie":"YOUR_QWEN_COOKIE","cdpPort":"9222"}'
+
+  - id: qwen-cn-web
+    enabled: false
+    profile: default
+    auth: '{"cookie":"YOUR_QWEN_CN_COOKIE","xsrfToken":"YOUR_XSRF_TOKEN","cdpPort":"9222"}'
+
+  - id: glm-web
+    enabled: false
+    profile: default
+    auth: '{"cookie":"YOUR_GLM_COOKIE","cdpPort":"9222"}'
+
+  - id: glm-intl-web
+    enabled: false
+    profile: default
+    auth: '{"cookie":"YOUR_GLM_INTL_COOKIE","cdpPort":"9222"}'
+
+  - id: perplexity-web
+    enabled: false
+    profile: default
+    auth: '{"cookie":"YOUR_PERPLEXITY_COOKIE","cdpPort":"9222"}'
+
+  - id: chatgpt-web
+    enabled: false
+    profile: default
+    auth: '{"cookie":"YOUR_CHATGPT_COOKIE","cdpPort":"9222"}'
+
+  - id: gemini-web
+    enabled: false
+    profile: default
+    auth: '{"cookie":"YOUR_GEMINI_COOKIE","cdpPort":"9222"}'
+
+  - id: grok-web
+    enabled: false
+    profile: default
+    auth: '{"cookie":"YOUR_GROK_COOKIE","cdpPort":"9222"}'
+
+  # ── API-based providers (OpenAI-compatible, need API key) ──
+
+  - id: ollama
+    enabled: true
+    auth: '{"baseUrl":"http://localhost:11434"}'
+
+  - id: vllm
+    enabled: false
+    auth: '{"baseUrl":"http://localhost:8000","apiKey":"no-key"}'
+
+  - id: openrouter
+    enabled: false
+    auth: '{"apiKey":"YOUR_OPENROUTER_API_KEY"}'
+
+  - id: together
+    enabled: false
+    auth: '{"apiKey":"YOUR_TOGETHER_API_KEY"}'
+
+  - id: qianfan
+    enabled: false
+    auth: '{"apiKey":"YOUR_QIANFAN_API_KEY"}'
+
+  - id: volcengine
+    enabled: false
+    auth: '{"apiKey":"YOUR_VOLCENGINE_API_KEY"}'
+
+  - id: xai
+    enabled: false
+    auth: '{"apiKey":"YOUR_XAI_API_KEY"}'
+
+  # ── Custom model override (optional) ──
+  # - id: openrouter
+  #   enabled: true
+  #   auth: '{"apiKey":"sk-..."}'
+  #   models:
+  #     - id: gpt-4o
+  #       name: GPT-4o
+  #       reasoning: false
+  #       contextWindow: 128000
+  #       maxTokens: 16384

@@ -199,18 +199,50 @@ function askSelection() {
   });
 }
 
-// ─── Config YAML generation ────────────────────────────────────
-function buildYamlSnippet(id, cookie, bearer) {
-  const lines = [];
-  lines.push(`  # ${PROVIDERS.find(p => p.id === id)?.name || id}`);
-  lines.push(`  - id: ${id}`);
-  lines.push(`    enabled: true`);
-  lines.push(`    auth:`);
-  lines.push(`      cookie: "${cookie.replace(/"/g, '\\"')}"`);
-  if (bearer) {
-    lines.push(`      bearer: "${bearer.replace(/"/g, '\\"')}"`);
+// ─── Config YAML auto-update ───────────────────────────────────
+function buildAuthJson(cookie, bearer) {
+  const obj = { cookie };
+  if (bearer) obj.bearer = bearer;
+  return JSON.stringify(obj);
+}
+
+async function updateConfig(results) {
+  const configPath = resolve(__dirname, '..', 'config.yaml');
+  let yaml;
+  try {
+    yaml = await readFile(configPath, 'utf-8');
+  } catch {
+    console.log(`\n✗ config.yaml not found at ${configPath}`);
+    console.log('  Create it first, then re-run.');
+    return false;
   }
-  return lines.join('\n');
+
+  let updated = yaml;
+  let count = 0;
+
+  for (const r of results) {
+    // Match: - id: xxx-web\n    ...\n    auth: '...'
+    const escaped = r.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(
+      `(- id: ${escaped}\\n(?:.*\\n)*?    )enabled: false(\\n(?:.*\\n)*?    auth: ')[^']*(')`,
+      ''
+    );
+    const authJson = buildAuthJson(r.cookie, r.bearer);
+    if (re.test(updated)) {
+      updated = updated.replace(re, `$1enabled: true$2${authJson}$3`);
+      count++;
+    }
+  }
+
+  if (count === 0) {
+    console.log('\n✗ No matching providers found in config.yaml');
+    return false;
+  }
+
+  const { writeFile } = await import('node:fs/promises');
+  await writeFile(configPath, updated, 'utf-8');
+  console.log(`\n✓ Updated ${count} provider(s) in config.yaml`);
+  return true;
 }
 
 // ─── Main ──────────────────────────────────────────────────────
@@ -262,31 +294,19 @@ async function main() {
     }
   }
 
-  // Output config
+  // Output & auto-update config
   if (results.length === 0) {
     console.log('\nNo credentials captured. Make sure you are logged in to the platforms.');
     process.exit(1);
   }
 
   console.log('\n==========================================');
-  console.log('  Add these to config.yaml:');
-  console.log('==========================================\n');
 
-  const yamlBlock = results.map(r => buildYamlSnippet(r.id, r.cookie, r.bearer)).join('\n\n');
-  console.log(yamlBlock);
-  console.log('\n==========================================');
+  // Auto-write config.yaml
+  await updateConfig(results);
 
-  // Try to append to config.yaml
-  const configPath = resolve(__dirname, '..', 'config.yaml');
-  try {
-    const existing = await readFile(configPath, 'utf-8');
-    // Check if providers section exists
-    if (existing.includes('providers:')) {
-      console.log(`\n[TIP] Paste the above under 'providers:' in ${configPath}`);
-    }
-  } catch {
-    console.log(`\n[TIP] Create config.yaml with the above providers section.`);
-  }
+  console.log('==========================================');
+  console.log('\nRestart gateway (start.bat [7]) to apply.');
 }
 
 main().catch(err => {

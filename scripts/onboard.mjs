@@ -95,6 +95,16 @@ function cdpConnect(wsUrl) {
   });
 }
 
+/** Wrap a promise with a timeout */
+function withTimeout(promise, ms, label = 'operation') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out (${ms}ms)`)), ms)
+    ),
+  ]);
+}
+
 // ─── Cookie extraction ─────────────────────────────────────────
 async function getCookies(cdpUrl, domain) {
   const targets = await getTargets(cdpUrl);
@@ -103,10 +113,10 @@ async function getCookies(cdpUrl, domain) {
 
   if (!tab?.webSocketDebuggerUrl) return null;
 
-  const { ws, send } = await cdpConnect(tab.webSocketDebuggerUrl);
+  const { ws, send } = await withTimeout(cdpConnect(tab.webSocketDebuggerUrl), 5000, 'CDP connect');
   try {
-    await send('Network.enable');
-    const result = await send('Network.getAllCookies');
+    await withTimeout(send('Network.enable'), 3000, 'Network.enable');
+    const result = await withTimeout(send('Network.getAllCookies'), 5000, 'getAllCookies');
     const cookies = result.cookies || [];
     const matching = cookies.filter(c => c.domain?.includes(domain));
     const cookieStr = matching
@@ -127,9 +137,9 @@ async function extractBearer(cdpUrl, domain) {
 
   if (!tab?.webSocketDebuggerUrl) return null;
 
-  const { ws, send } = await cdpConnect(tab.webSocketDebuggerUrl);
+  const { ws, send } = await withTimeout(cdpConnect(tab.webSocketDebuggerUrl), 5000, 'CDP connect');
   try {
-    const result = await send('Runtime.evaluate', {
+    const result = await withTimeout(send('Runtime.evaluate', {
       expression: `
         (function() {
           // localStorage
@@ -161,7 +171,7 @@ async function extractBearer(cdpUrl, domain) {
         })()
       `,
       returnByValue: true,
-    });
+    }), 5000, 'Runtime.evaluate');
     return result?.result?.value || null;
   } finally {
     ws.close();

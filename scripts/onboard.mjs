@@ -171,7 +171,6 @@ async function extractBearer(cdpUrl, domain) {
 // ─── Interactive selection (stdin) ─────────────────────────────
 function askSelection() {
   return new Promise((resolve) => {
-    const rl = process.stdin;
     process.stdout.write('\nProviders:\n');
     PROVIDERS.forEach((p, i) => {
       process.stdout.write(`  [${String(i + 1).padStart(2)}] ${p.name} (${p.id})\n`);
@@ -179,23 +178,20 @@ function askSelection() {
     process.stdout.write(`  [ 0] ALL\n`);
     process.stdout.write(`\nSelect (comma-separated numbers, or 0 for all): `);
 
-    let buf = '';
-    const onData = (chunk) => {
-      buf += chunk.toString();
-      if (buf.includes('\n')) {
-        rl.removeListener('data', onData);
-        const input = buf.trim();
-        if (input === '0' || input === '') {
-          resolve(PROVIDERS.map(p => p.id));
-        } else {
-          const indices = input.split(/[,\s]+/).map(Number).filter(n => n >= 1 && n <= PROVIDERS.length);
-          resolve(indices.map(i => PROVIDERS[i - 1].id));
-        }
+    const onLine = (line) => {
+      process.stdin.removeListener('line', onLine);
+      process.stdin.pause();
+      const input = line.trim();
+      if (input === '0' || input === '') {
+        resolve(PROVIDERS.map(p => p.id));
+      } else {
+        const indices = input.split(/[,\s]+/).map(Number).filter(n => n >= 1 && n <= PROVIDERS.length);
+        resolve(indices.map(i => PROVIDERS[i - 1].id));
       }
     };
-    rl.setRawMode?.(false);
-    rl.resume();
-    rl.on('data', onData);
+    process.stdin.setEncoding('utf-8');
+    process.stdin.resume();
+    process.stdin.once('line', onLine);
   });
 }
 
@@ -312,9 +308,11 @@ async function main() {
 
   console.log('==========================================');
   console.log('\nRestart gateway (start.bat [7]) to apply.');
+  process.stdin.pause();
 }
 
 main().catch(err => {
   console.error(`\n[ERROR] ${err.message}`);
+  process.stdin.pause();
   process.exit(1);
 });

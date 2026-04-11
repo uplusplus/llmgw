@@ -179,18 +179,13 @@ if not errorlevel 1 (
 taskkill /f /im chrome.exe /fi "WINDOWTITLE eq *llmgw*" >nul 2>&1
 timeout /t 1 /nobreak >nul
 
-:: Launch
+:: Launch Chrome
+:: NOTE: start command first quoted arg = window title, not executable.
+:: Use a variable for args to avoid quoting hell with spaces/special chars.
 if not exist "%CHROME_DATA%" mkdir "%CHROME_DATA%"
-start "llmgw-browser" "!CHROME_PATH!" ^
-    --remote-debugging-port=%CDP_PORT% ^
-    --user-data-dir="%CHROME_DATA%" ^
-    --no-first-run ^
-    --no-default-browser-check ^
-    --remote-allow-origins=* ^
-    --disable-gpu ^
-    --disable-dev-shm-usage
-
-echo  Chrome launched (CDP port %CDP_PORT%).
+set "CHROME_ARGS=--remote-debugging-port=%CDP_PORT% --user-data-dir=%CHROME_DATA% --no-first-run --no-default-browser-check --remote-allow-origins=* --disable-gpu --disable-dev-shm-usage"
+start "llmgw-browser" /d "%CHROME_DATA%" "!CHROME_PATH!" !CHROME_ARGS!
+echo  Chrome launched ^(CDP port %CDP_PORT%^).
 
 :: Wait for CDP to be ready
 echo  Waiting for CDP...

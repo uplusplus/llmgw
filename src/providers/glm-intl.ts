@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 /**
  * GLM International Web Provider (chat.z.ai) — cookie + DOM interaction via Playwright CDP.
  * Ported from openclaw-zero-token.

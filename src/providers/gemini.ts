@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 /**
  * Gemini Web Provider — cookie auth, DOM interaction via Playwright CDP.
  * Ported from openclaw-zero-token.

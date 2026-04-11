@@ -111,6 +111,10 @@ providers:
     enabled: false
     auth: '{"apiKey":"YOUR_XAI_API_KEY"}'
 
+  - id: manus
+    enabled: false
+    auth: '{"apiKey":"YOUR_MANUS_API_KEY"}'
+
   # ── Custom model override (optional) ──
   # - id: openrouter
   #   enabled: true

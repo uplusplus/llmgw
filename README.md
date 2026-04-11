@@ -25,6 +25,7 @@
 | Grok Web | ✅ 已实现 | Cookie + Playwright CDP | API + DOM fallback | grok-1, grok-2, grok-3 |
 | Ollama | ✅ 已实现 | 本地 API | OpenAI-compat | llama3, qwen2.5, mistral |
 | OpenRouter | ✅ 已实现 | API Key | OpenAI-compat | auto, hunter-alpha |
+| Manus | ✅ 已实现 | API Key | OpenAI-compat | manus-1.6, manus-1.6-lite |
 | vLLM/Together/... | ✅ 已实现 | API Key | OpenAI-compat | 各模型 |
 
 ---
@@ -224,12 +225,13 @@ BrowserManager 启动/连接 Chrome → CDP WebSocket URL
 - [x] 工具调用提取（fenced JSON / bare JSON / XML）
 - [x] 关键词检测避免无谓注入
 
-### Phase 7 — 收尾与测试 🚧
+### Phase 7 — 收尾与测试 ✅
 
-- [x] config.yaml 包含所有 13 个 web provider 配置模板
-- [ ] 安装依赖并编译测试
+- [x] config.yaml 包含所有 15 个 provider 配置模板（13 web + 1 Manus API + OpenAI-compat）
+- [x] 安装依赖并编译测试（tsc + tsdown build 通过）
+- [x] Dockerfile + docker-compose
+- [x] TypeScript 类型修复（DOM types in page.evaluate）
 - [ ] 端到端测试：至少验证 3 个 provider（DeepSeek, Claude, Qwen）
-- [ ] Dockerfile + docker-compose
 - [ ] 并发 & 会话隔离测试
 
 ---

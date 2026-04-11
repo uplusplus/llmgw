@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  llmgw:
+    build: .
+    container_name: llmgw
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - browser-data:/root/.zero-token-service/browser
+    environment:
+      - NODE_ENV=production
+      - TZ=Asia/Shanghai
+    # Chrome needs extra capabilities for headless mode in Docker
+    # Option A: headless mode (recommended for Docker)
+    # Option B: connect to external Chrome via CDP (attach mode)
+    # Uncomment the following for headless Chrome with sandbox disabled:
+    # cap_add:
+    #   - SYS_ADMIN
+    # security_opt:
+    #   - seccomp=unconfined
+
+  # Optional: dedicated Chrome instance for CDP attach mode
+  # chrome:
+  #   image: chromedp/headless-shell:latest
+  #   container_name: llmgw-chrome
+  #   restart: unless-stopped
+  #   ports:
+  #     - "9222:9222"
+  #   shm_size: "2gb"
+
+volumes:
+  browser-data:

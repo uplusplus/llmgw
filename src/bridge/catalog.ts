@@ -63,6 +63,10 @@ function defaultModelsFor(providerId: string): ModelDefinition[] {
       { id: "doubao-seed-1-8-251228", name: "Doubao Seed 1.8", contextWindow: 256000, maxTokens: 4096 },
       { id: "deepseek-v3-2-251201", name: "DeepSeek V3.2", contextWindow: 128000, maxTokens: 4096 },
     ],
+    manus: [
+      { id: "manus-1.6", name: "Manus 1.6", reasoning: true, contextWindow: 128000, maxTokens: 65536 },
+      { id: "manus-1.6-lite", name: "Manus 1.6 Lite", contextWindow: 64000, maxTokens: 32768 },
+    ],
     sglang: [
       { id: "default", name: "SGLang Default", contextWindow: 4096, maxTokens: 2048 },
     ],
@@ -110,6 +114,7 @@ const DEFAULT_BASE_URLS: Record<string, string> = {
   perplexity: "https://api.perplexity.ai",
   chutes: "https://llm.chutes.ai/v1",
   minimax: "https://api.minimax.chat/v1",
+  manus: "https://api.manus.im/v1",
 };
 
 // ── Provider factory ──

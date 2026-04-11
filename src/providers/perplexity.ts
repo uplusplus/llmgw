@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 /**
  * Perplexity Web Provider — cookie + DOM interaction via Playwright CDP.
  * Ported from openclaw-zero-token.

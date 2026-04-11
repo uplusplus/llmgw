@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 /**
  * ChatGPT Web Provider — cookie + session auth, DOM interaction via Playwright CDP.
  * Ported from openclaw-zero-token.

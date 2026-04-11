@@ -70,7 +70,7 @@ pause >nul
 
 :: Re-verify Chrome is still running before onboard
 echo.
-curl -s -o nul --connect-timeout 1 http://127.0.0.1:%CDP_PORT%/json/version >nul 2>&1
+call :PORT_LISTEN %CDP_PORT%
 if errorlevel 1 (
     echo  [ERROR] Chrome debug lost. Please restart with option [2].
     pause
@@ -148,10 +148,10 @@ start "llmgw-browser" "!CHROME_PATH!" ^
     --disable-gpu ^
     --disable-dev-shm-usage
 
-echo  Waiting for Chrome...
+echo  Waiting for Chrome on port %CDP_PORT%...
 set "CDP_OK=0"
-for /l %%i in (1,1,15) do (
-    curl -s -o nul --connect-timeout 1 http://127.0.0.1:%CDP_PORT%/json/version >nul 2>&1
+for /l %%i in (1,1,20) do (
+    call :PORT_LISTEN %CDP_PORT%
     if !errorlevel!==0 (
         set "CDP_OK=1"
         goto :chrome_ready
@@ -164,7 +164,7 @@ for /l %%i in (1,1,15) do (
 echo.
 if "!CDP_OK!"=="1" (
     echo  [OK] Chrome debug mode started.
-    echo  CDP port: http://127.0.0.1:%CDP_PORT%
+    echo  CDP port: %CDP_PORT%
 ) else (
     echo  [WARN] Chrome may not be fully ready yet.
 )
@@ -186,15 +186,13 @@ echo  [Login] Opening platform login pages...
 :: Use detected Chrome path if available, otherwise fall back to default browser
 if not defined CHROME_PATH (
     echo  [WARN] Chrome path not set, opening with default browser.
-    set "LOGIN_CMD=start "" """
     goto :open_urls_default
 )
 
 :: Verify debug Chrome is running
-curl -s -o nul --connect-timeout 1 http://127.0.0.1:%CDP_PORT%/json/version >nul 2>&1
+call :PORT_LISTEN %CDP_PORT%
 if errorlevel 1 (
     echo  [WARN] Chrome debug not running, opening with default browser.
-    set "LOGIN_CMD=start "" """
     goto :open_urls_default
 )
 
@@ -247,7 +245,7 @@ if errorlevel 1 goto :MENU
 :ONBOARD_CORE
 echo.
 echo  [Onboard] Checking Chrome connection...
-curl -s -o nul --connect-timeout 1 http://127.0.0.1:%CDP_PORT%/json/version >nul 2>&1
+call :PORT_LISTEN %CDP_PORT%
 if errorlevel 1 (
     echo  [WARN] Chrome debug not running on port %CDP_PORT%.
     echo  Start Chrome first with option [2].
@@ -255,7 +253,7 @@ if errorlevel 1 (
     goto :MENU
 )
 
-echo  Chrome connected.
+echo  Chrome connected on port %CDP_PORT%.
 echo.
 echo  [Onboard] Running auth wizard...
 echo.
@@ -320,10 +318,10 @@ echo.
 
 start /b "llmgw-gateway" node "%SCRIPT_DIR%dist\server.mjs" > "%LOG_FILE%" 2>&1
 
-echo  [Gateway] Waiting for ready...
+echo  [Gateway] Waiting for ready on port %SERVER_PORT%...
 set "GW_OK=0"
 for /l %%i in (1,1,30) do (
-    curl -s -o nul --connect-timeout 1 http://127.0.0.1:%SERVER_PORT%/health >nul 2>&1
+    call :PORT_LISTEN %SERVER_PORT%
     if !errorlevel!==0 (
         set "GW_OK=1"
         echo.
@@ -419,20 +417,17 @@ if !errorlevel!==0 (
     echo   [!] npm: Not installed
 )
 
-curl -s -o nul --connect-timeout 1 http://127.0.0.1:%CDP_PORT%/json/version >nul 2>&1
+call :PORT_LISTEN %CDP_PORT%
 if !errorlevel!==0 (
     echo   [OK] Chrome: CDP running on port %CDP_PORT%
 ) else (
     echo   [!] Chrome: Not running
 )
 
-curl -s -o nul --connect-timeout 1 http://127.0.0.1:%SERVER_PORT%/health >nul 2>&1
+call :PORT_LISTEN %SERVER_PORT%
 if !errorlevel!==0 (
     echo   [OK] Gateway: Running on port %SERVER_PORT%
     echo   Health:   http://127.0.0.1:%SERVER_PORT%/health
-    for /f "tokens=*" %%m in ('curl -s http://127.0.0.1:%SERVER_PORT%/v1/models 2^>nul ^| node -e "try{const d=JSON.parse(require^('fs^').readFileSync^(0,'utf8^'));const ms=^(d.data||[]^).map^(m=>m.id^);console.log^(ms.length?ms.join^(', '^):'none'^)}catch{console.log^('parse error'^)}" 2^>nul') do (
-        echo   Models:   %%m
-    )
 ) else (
     echo   [!] Gateway: Not running
 )
@@ -510,6 +505,14 @@ goto :BUILD
 :: ================================================
 ::  Utility Functions
 :: ================================================
+
+:: Check if a TCP port is listening (netstat-based, no curl needed)
+:: Usage: call :PORT_LISTEN <port>
+:: Returns: 0 if listening, 1 if not
+:PORT_LISTEN
+netstat -ano | findstr ":%1 " | findstr "LISTENING" >nul 2>&1
+exit /b !errorlevel!
+
 :CHECK_NODE
 where node >nul 2>&1
 if !errorlevel! neq 0 (

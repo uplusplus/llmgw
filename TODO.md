@@ -2,17 +2,17 @@
 
 从 openclaw-zero-token 提取核心功能，补全 llmgw 缺失部分。
 
-## 进度总览 (2026-04-11 13:00)
+## 进度总览 (2026-04-11 13:20)
 
 | 阶段 | 状态 | 完成度 |
 |------|------|--------|
 | 基础架构 | ✅ 完成 | 100% |
-| P0 核心健壮性 | 🔄 进行中 | 55% (DeepSeek ✅, Claude ✅ enhanced, Kimi ✅) |
+| P0 核心健壮性 | 🔄 进行中 | 65% (DeepSeek ✅, Claude ✅, Kimi ✅, Doubao ✅, MiMo ✅) |
 | P1 Auth 自动化 | ✅ 完成 | 100% (13/13 模块已创建) |
-| P2 功能增强 | ⏳ 待开发 | 10% (tag-aware parser 通用化完成) |
+| P2 功能增强 | 🔄 进行中 | 15% (tag-aware parser + tool calling 参考分析完成) |
 | P3 测试部署 | ⏳ 待开发 | 0% |
 
-**总体完成度: ~82%** (含基础架构 85% + Auth 100% + 流解析增强)
+**总体完成度: ~85%**
 
 ## 源码对比 (openclaw-zero-token vs llmgw)
 
@@ -49,11 +49,23 @@
   - `<` 前缀缓冲安全（不丢弃）
   - 可复用于所有需要标签解析的 provider
 
-- [ ] **Kimi Connect-JSON 帧解析增强** — ✅ 基础版已完整
+- [x] **Kimi Connect-JSON 帧解析增强** — ✅ 基础版已完整
   - 二进制帧协议（0x00 + 4-byte BE length + JSON）✅
   - op 字段处理（append/set）✅
   - thinking 块支持 ✅
   - 参考: `openclaw-zero-token/src/zero-token/streams/kimi-web-stream.ts`
+
+- [x] **Doubao 流解析增强** — 2026-04-11 完成
+  - event_type 2001/2002/2003/2010 事件处理
+  - event_data JSON 解析（message.content → text 提取）
+  - OpenAI-compatible fallback
+  - 参考: `openclaw-zero-token/src/zero-token/streams/doubao-web-stream.ts`
+
+- [x] **Xiaomi MiMo 流解析增强** — 2026-04-11 完成
+  - TagAwareBuffer 集成（think/thinking 标签分离）
+  - conversation_id 追踪
+  - tool_calls 提取
+  - 参考: `openclaw-zero-token/src/zero-token/streams/xiaomimo-web-stream.ts`
 
 ## P1 — Auth 自动化 ✅ 已完成
 

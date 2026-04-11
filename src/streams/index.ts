@@ -10,3 +10,5 @@ export type { StreamChunk } from "./parsers.js";
 
 export { parseClaudeSSEStream, createTagAwareBuffer } from "./claude-parser.js";
 export type { TagAwareBuffer } from "./claude-parser.js";
+
+export { parseDoubaoSSEStream } from "./doubao-parser.js";

@@ -171,7 +171,7 @@ BrowserManager 启动/连接 Chrome → CDP WebSocket URL
 
 ## 开发进度
 
-> 详细 TODO 见 [TODO.md](./TODO.md)。总体完成度约 **82%**。
+> 详细 TODO 见 [TODO.md](./TODO.md)。总体完成度约 **85%**。
 
 ### 进度总览 (2026-04-11 13:00)
 

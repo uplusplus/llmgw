@@ -1,6 +1,8 @@
 /**
  * Xiaomi MiMo Web Provider — cookie + bearer auth, REST API.
  * Ported from openclaw-zero-token.
+ *
+ * Enhanced with conversation tracking and platform-specific SSE parsing.
  */
 
 import type {
@@ -10,6 +12,7 @@ import type {
   StreamCallbacks,
 } from "../types.js";
 import { buildPrompt, DEFAULT_USER_AGENT, readSSEStream } from "./base.js";
+import { createTagAwareBuffer } from "../streams/claude-parser.js";
 
 export interface XiaomiMimoProviderOptions {
   cookie: string;
@@ -98,6 +101,9 @@ export class XiaomiMimoProvider implements ProviderAdapter {
       }
       if (!res.body) throw new Error("No response body");
 
+      // Use tag-aware buffer for think/thinking tag separation
+      const tagBuffer = createTagAwareBuffer();
+
       for await (const jsonStr of readSSEStream(res.body)) {
         try {
           const data = JSON.parse(jsonStr);
@@ -106,22 +112,62 @@ export class XiaomiMimoProvider implements ProviderAdapter {
             this.conversationId = data.conversation_id;
           }
 
+          // Extract text content from multiple possible fields
           const content = data.choices?.[0]?.delta?.content
             ?? data.choices?.[0]?.message?.content
             ?? data.text
             ?? data.content
             ?? data.message;
+
           if (typeof content === "string" && content) {
-            callbacks.onText(content);
+            for (const chunk of tagBuffer.push(content)) {
+              switch (chunk.type) {
+                case "text":
+                  if (chunk.content) callbacks.onText(chunk.content);
+                  break;
+                case "thinking":
+                  if (chunk.content) callbacks.onReasoning(chunk.content);
+                  break;
+              }
+            }
           }
 
+          // Direct reasoning content (without think tags)
           const thinking = data.choices?.[0]?.delta?.reasoning_content
             ?? data.thinking
             ?? data.reasoning_content;
           if (typeof thinking === "string" && thinking) {
             callbacks.onReasoning(thinking);
           }
+
+          // Tool call extraction
+          if (data.choices?.[0]?.delta?.tool_calls) {
+            for (const tc of data.choices[0].delta.tool_calls) {
+              if (tc.function?.name || tc.function?.arguments) {
+                callbacks.onToolCall({
+                  id: tc.id ?? `mimo_tool_${Date.now()}`,
+                  type: "function" as const,
+                  function: {
+                    name: tc.function?.name ?? "",
+                    arguments: tc.function?.arguments ?? "",
+                  },
+                });
+              }
+            }
+          }
         } catch { /* ignore partial JSON */ }
+      }
+
+      // Flush remaining tag buffer
+      for (const chunk of tagBuffer.flush()) {
+        switch (chunk.type) {
+          case "text":
+            if (chunk.content) callbacks.onText(chunk.content);
+            break;
+          case "thinking":
+            if (chunk.content) callbacks.onReasoning(chunk.content);
+            break;
+        }
       }
 
       callbacks.onDone();

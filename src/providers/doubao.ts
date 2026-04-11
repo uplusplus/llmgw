@@ -1,6 +1,8 @@
 /**
  * Doubao (ByteDance) Web Provider — sessionid + ttwid cookie auth.
  * Ported from openclaw-zero-token.
+ *
+ * Uses enhanced Doubao SSE parser with event_type handling (2001/2002/2003/2010).
  */
 
 import type {
@@ -9,7 +11,8 @@ import type {
   ChatCompletionRequest,
   StreamCallbacks,
 } from "../types.js";
-import { extractText, DEFAULT_USER_AGENT, readSSEStream } from "./base.js";
+import { extractText, DEFAULT_USER_AGENT } from "./base.js";
+import { parseDoubaoSSEStream } from "../streams/doubao-parser.js";
 
 export interface DoubaoProviderOptions {
   cookie?: string;
@@ -131,29 +134,22 @@ export class DoubaoProvider implements ProviderAdapter {
       }
       if (!res.body) throw new Error("No response body");
 
-      for await (const jsonStr of readSSEStream(res.body)) {
-        try {
-          const data = JSON.parse(jsonStr);
-
-          const content = data.choices?.[0]?.delta?.content
-            ?? data.choices?.[0]?.message?.content
-            ?? data.content
-            ?? data.text;
-          if (typeof content === "string" && content) {
-            callbacks.onText(content);
-          }
-
-          const thinking = data.choices?.[0]?.delta?.reasoning_content
-            ?? data.choices?.[0]?.delta?.thinking
-            ?? data.thinking;
-          if (typeof thinking === "string" && thinking) {
-            callbacks.onReasoning(thinking);
-          }
-
-          if (data.choices?.[0]?.finish_reason === "stop" || data.done) {
+      // Use enhanced Doubao SSE parser with event_type handling
+      for await (const chunk of parseDoubaoSSEStream(res.body)) {
+        switch (chunk.type) {
+          case "text":
+            if (chunk.content) callbacks.onText(chunk.content);
             break;
-          }
-        } catch { /* ignore */ }
+          case "thinking":
+            if (chunk.content) callbacks.onReasoning(chunk.content);
+            break;
+          case "done":
+            callbacks.onDone();
+            return;
+          case "error":
+            callbacks.onError(new Error(chunk.error ?? "Unknown stream error"));
+            return;
+        }
       }
 
       callbacks.onDone();

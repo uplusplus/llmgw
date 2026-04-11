@@ -258,39 +258,48 @@ echo.
 echo  [Onboard] Running auth wizard...
 echo.
 
-where python3 >nul 2>&1
+:: Check bash availability
+where bash >nul 2>&1
 if errorlevel 1 (
-    where python >nul 2>&1
-    if errorlevel 1 (
-        echo  [WARN] Python not found. Onboard needs Python 3.
-        echo  Install: https://www.python.org/downloads/
-        echo.
-        echo  Manual auth steps:
-        echo  1. Open Chrome DevTools (F12) - Application - Cookies
-        echo  2. Copy cookie string
-        echo  3. Paste into config.yaml providers.auth
-        pause
-        goto :MENU
-    )
+    echo  [INFO] bash not found. Showing manual auth instructions.
+    goto :manual_auth
 )
 
+:: Try running onboard.sh
 if exist "%SCRIPT_DIR%scripts\onboard.sh" (
+    echo  Running scripts\onboard.sh via bash...
+    echo.
     bash "%SCRIPT_DIR%scripts\onboard.sh"
+    set "_ONBOARD_RC=!errorlevel!"
+    echo.
+    if not "!_ONBOARD_RC!"=="0" (
+        echo  [WARN] onboard.sh exited with code !_ONBOARD_RC!
+    )
 ) else (
-    echo  [WARN] scripts\onboard.sh not found.
-    echo.
-    echo  Manual auth steps:
-    echo  1. Log in to each platform in Chrome
-    echo  2. F12 - Application - Cookies
-    echo  3. Copy cookie string to config.yaml
-    echo.
-    echo  config.yaml example:
-    echo    providers:
-    echo      - id: deepseek-web
-    echo        enabled: true
-    echo        auth:
-    echo          cookie: "your_cookie_here"
+    goto :manual_auth
 )
+goto :onboard_done
+
+:manual_auth
+echo  [INFO] Manual auth setup:
+echo.
+echo  1. Open Chrome at http://127.0.0.1:%CDP_PORT%
+echo  2. Log in to each platform you want to use
+echo  3. Press F12 - Application - Cookies
+echo  4. Copy cookie string for each platform
+echo  5. Paste into config.yaml under providers.auth
+echo.
+echo  config.yaml example:
+echo    providers:
+echo      - id: deepseek-web
+echo        enabled: true
+echo        auth:
+echo          cookie: "your_cookie_here"
+echo.
+echo  Or extract cookies via Chrome DevTools Protocol:
+echo    node -e "/* CDP script to extract cookies */"
+
+:onboard_done
 echo.
 pause
 goto :MENU

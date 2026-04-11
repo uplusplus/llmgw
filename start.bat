@@ -508,10 +508,11 @@ goto :BUILD
 
 :: Check if a TCP port is listening (netstat-based, no curl needed)
 :: Usage: call :PORT_LISTEN <port>
-:: Returns: 0 if listening, 1 if not
+:: Sets errorlevel: 0 if listening, 1 if not
 :PORT_LISTEN
-netstat -ano | findstr ":%1 " | findstr "LISTENING" >nul 2>&1
-exit /b !errorlevel!
+set "_PL_OUT="
+for /f %%a in ('netstat -ano 2^>nul ^| findstr ":%1 " ^| findstr "LISTENING"') do set "_PL_OUT=1"
+if defined _PL_OUT (exit /b 0) else (exit /b 1)
 
 :CHECK_NODE
 where node >nul 2>&1

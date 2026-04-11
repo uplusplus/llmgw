@@ -17,6 +17,12 @@ import {
   isChromeReachable,
   cdpUrlForPort,
 } from "../browser/cdp.js";
+import {
+  cleanGeminiText,
+  stripGeminiUI,
+  GEMINI_MODEL_SELECTORS,
+  GEMINI_STOP_SELECTORS,
+} from "../streams/gemini-parser.js";
 
 export interface GeminiProviderOptions {
   cookie: string;

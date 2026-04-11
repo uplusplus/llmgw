@@ -14,12 +14,13 @@ import type {
   ChatCompletionRequest,
   StreamCallbacks,
 } from "../types.js";
-import { buildPrompt, DEFAULT_USER_AGENT } from "./base.js";
+import { buildPrompt, DEFAULT_USER_AGENT, stringToReadableStream } from "./base.js";
 import {
   getChromeWebSocketUrl,
   isChromeReachable,
   cdpUrlForPort,
 } from "../browser/cdp.js";
+import { parseChatGPTSSEStream } from "../streams/chatgpt-parser.js";
 
 export interface ChatGPTProviderOptions {
   cookie: string;
@@ -172,25 +173,32 @@ export class ChatGPTProvider implements ProviderAdapter {
       );
 
       if (responseData.ok) {
-        // Parse SSE data
+        // Parse SSE data using enhanced ChatGPT stream parser
         const raw = responseData.data || "";
-        const lines = raw.split("\n");
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed.startsWith("data: ")) continue;
-          const dataStr = trimmed.slice(6).trim();
-          if (dataStr === "[DONE]") break;
-          try {
-            const data = JSON.parse(dataStr);
-            const parts = data.message?.content?.parts;
-            if (Array.isArray(parts)) {
-              for (const part of parts) {
-                if (typeof part === "string" && part) callbacks.onText(part);
-              }
-            }
-            const delta = data.choices?.[0]?.delta?.content;
-            if (typeof delta === "string" && delta) callbacks.onText(delta);
-          } catch { /* ignore */ }
+        const stream = stringToReadableStream(raw);
+
+        for await (const chunk of parseChatGPTSSEStream(stream)) {
+          switch (chunk.type) {
+            case "text":
+              if (chunk.content) callbacks.onText(chunk.content);
+              break;
+            case "thinking":
+              if (chunk.content) callbacks.onReasoning(chunk.content);
+              break;
+            case "tool_call":
+              if (chunk.toolCall) callbacks.onToolCall({
+                id: chunk.toolCall.id,
+                type: "function",
+                function: { name: chunk.toolCall.name, arguments: chunk.toolCall.arguments },
+              });
+              break;
+            case "done":
+              callbacks.onDone();
+              return;
+            case "error":
+              callbacks.onError(new Error(chunk.error ?? "Stream error"));
+              return;
+          }
         }
         callbacks.onDone();
         return;

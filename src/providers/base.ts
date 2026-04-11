@@ -69,3 +69,18 @@ export async function* readSSEStream(body: ReadableStream<Uint8Array>): AsyncGen
     }
   }
 }
+
+/**
+ * Convert a raw string (accumulated SSE/NDJSON) to a ReadableStream<Uint8Array>.
+ * Useful for feeding accumulated page.evaluate() responses into stream parsers.
+ */
+export function stringToReadableStream(raw: string): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(raw);
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(data);
+      controller.close();
+    },
+  });
+}

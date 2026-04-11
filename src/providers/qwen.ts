@@ -13,12 +13,13 @@ import type {
   ChatCompletionRequest,
   StreamCallbacks,
 } from "../types.js";
-import { buildPrompt, DEFAULT_USER_AGENT } from "./base.js";
+import { buildPrompt, DEFAULT_USER_AGENT, stringToReadableStream } from "./base.js";
 import {
   getChromeWebSocketUrl,
   isChromeReachable,
   cdpUrlForPort,
 } from "../browser/cdp.js";
+import { parseQwenSSEStream } from "../streams/qwen-parser.js";
 
 export interface QwenProviderOptions {
   cookie: string;
@@ -199,34 +200,33 @@ export class QwenProvider implements ProviderAdapter {
         throw new Error(`Qwen API error: ${responseData.status} - ${responseData.error}`);
       }
 
-      // Parse the collected SSE data
+      // Parse the collected SSE data using enhanced Qwen stream parser
       const raw = responseData.data || "";
-      const lines = raw.split("\n");
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data: ")) continue;
-        const dataStr = trimmed.slice(6).trim();
-        if (dataStr === "[DONE]") break;
+      const stream = stringToReadableStream(raw);
 
-        try {
-          const data = JSON.parse(dataStr);
-          const content = data.choices?.[0]?.delta?.content
-            ?? data.choices?.[0]?.message?.content
-            ?? data.content
-            ?? data.text;
-          if (typeof content === "string" && content) {
-            callbacks.onText(content);
-          }
-
-          const thinking = data.choices?.[0]?.delta?.reasoning_content
-            ?? data.choices?.[0]?.delta?.thinking
-            ?? data.thinking;
-          if (typeof thinking === "string" && thinking) {
-            callbacks.onReasoning(thinking);
-          }
-        } catch { /* ignore */ }
+      for await (const chunk of parseQwenSSEStream(stream)) {
+        switch (chunk.type) {
+          case "text":
+            if (chunk.content) callbacks.onText(chunk.content);
+            break;
+          case "thinking":
+            if (chunk.content) callbacks.onReasoning(chunk.content);
+            break;
+          case "tool_call":
+            if (chunk.toolCall) callbacks.onToolCall({
+              id: chunk.toolCall.id,
+              type: "function",
+              function: { name: chunk.toolCall.name, arguments: chunk.toolCall.arguments },
+            });
+            break;
+          case "done":
+            callbacks.onDone();
+            return;
+          case "error":
+            callbacks.onError(new Error(chunk.error ?? "Stream error"));
+            return;
+        }
       }
-
       callbacks.onDone();
     } catch (err) {
       callbacks.onError(err instanceof Error ? err : new Error(String(err)));

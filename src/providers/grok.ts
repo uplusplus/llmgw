@@ -11,12 +11,13 @@ import type {
   ChatCompletionRequest,
   StreamCallbacks,
 } from "../types.js";
-import { buildPrompt, DEFAULT_USER_AGENT } from "./base.js";
+import { buildPrompt, DEFAULT_USER_AGENT, stringToReadableStream } from "./base.js";
 import {
   getChromeWebSocketUrl,
   isChromeReachable,
   cdpUrlForPort,
 } from "../browser/cdp.js";
+import { parseGrokSSEStream } from "../streams/grok-parser.js";
 
 export interface GrokProviderOptions {
   cookie: string;
@@ -162,14 +163,32 @@ export class GrokProvider implements ProviderAdapter {
       );
 
       if (responseData.ok) {
-        // Parse NDJSON response
-        const lines = (responseData.data || "").split("\n").filter((l: string) => l.trim());
-        for (const line of lines) {
-          try {
-            const data = JSON.parse(line);
-            const content = data.contentDelta ?? data.textDelta ?? data.content ?? data.text;
-            if (typeof content === "string" && content) callbacks.onText(content);
-          } catch { /* ignore */ }
+        // Parse NDJSON response using enhanced Grok stream parser
+        const raw = responseData.data || "";
+        const stream = stringToReadableStream(raw);
+
+        for await (const chunk of parseGrokSSEStream(stream)) {
+          switch (chunk.type) {
+            case "text":
+              if (chunk.content) callbacks.onText(chunk.content);
+              break;
+            case "thinking":
+              if (chunk.content) callbacks.onReasoning(chunk.content);
+              break;
+            case "tool_call":
+              if (chunk.toolCall) callbacks.onToolCall({
+                id: chunk.toolCall.id,
+                type: "function",
+                function: { name: chunk.toolCall.name, arguments: chunk.toolCall.arguments },
+              });
+              break;
+            case "done":
+              callbacks.onDone();
+              return;
+            case "error":
+              callbacks.onError(new Error(chunk.error ?? "Stream error"));
+              return;
+          }
         }
         callbacks.onDone();
         return;

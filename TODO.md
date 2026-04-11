@@ -2,17 +2,37 @@
 
 从 openclaw-zero-token 提取核心功能，补全 llmgw 缺失部分。
 
-## 进度总览 (2026-04-11 13:20)
+## 进度总览 (2026-04-11 14:08)
 
 | 阶段 | 状态 | 完成度 |
 |------|------|--------|
 | 基础架构 | ✅ 完成 | 100% |
-| P0 核心健壮性 | 🔄 进行中 | 65% (DeepSeek ✅, Claude ✅, Kimi ✅, Doubao ✅, MiMo ✅) |
+| P0 核心健壮性 | 🔄 进行中 | 90% (仅剩 provider 集成对接) |
 | P1 Auth 自动化 | ✅ 完成 | 100% (13/13 模块已创建) |
-| P2 功能增强 | 🔄 进行中 | 15% (tag-aware parser + tool calling 参考分析完成) |
+| P2 功能增强 | 🔄 进行中 | 20% |
 | P3 测试部署 | ⏳ 待开发 | 0% |
 
-**总体完成度: ~85%**
+**总体完成度: ~90%**
+
+## P0 — 核心健壮性
+
+已完成的流解析增强（全部 TypeScript 编译通过 + 构建通过）：
+
+| Provider | Parser 文件 | 参考原版行数 | 状态 |
+|----------|------------|------------|------|
+| DeepSeek | parsers.ts (内置) | 1179 | ✅ |
+| Claude | claude-parser.ts | 729 | ✅ |
+| Kimi | parsers.ts (内置) | 747 | ✅ |
+| Doubao | doubao-parser.ts | ~500 | ✅ |
+| MiMo | xiaomimo.ts (内置) | ~450 | ✅ |
+| **ChatGPT** | **chatgpt-parser.ts** (NEW) | 447 | ✅ 2026-04-11 |
+| **Grok** | **grok-parser.ts** (NEW) | 415 | ✅ 2026-04-11 |
+| **GLM** | **glm-parser.ts** (NEW) | 500+ | ✅ 2026-04-11 |
+| **GLM Intl** | **glm-parser.ts** (NEW) | 349 | ✅ 2026-04-11 |
+| **Qwen** | **qwen-parser.ts** (NEW) | 400+ | ✅ 2026-04-11 |
+| **Qwen CN** | **qwen-parser.ts** (NEW) | 460+ | ✅ 2026-04-11 |
+| **Perplexity** | **perplexity-parser.ts** (NEW) | 197 | ✅ 2026-04-11 |
+| **Gemini** | **gemini-parser.ts** (NEW) | 349 | ✅ 2026-04-11 (DOM-only) |
 
 ## 源码对比 (openclaw-zero-token vs llmgw)
 
@@ -67,6 +87,47 @@
   - tool_calls 提取
   - 参考: `openclaw-zero-token/src/zero-token/streams/xiaomimo-web-stream.ts`
 
+- [x] **ChatGPT 流解析增强** — 2026-04-11 完成
+  - `src/streams/chatgpt-parser.ts` (160 行)
+  - message.content.parts[] 累积内容 delta 计算
+  - conversation_id / message.id 追踪
+  - NDJSON + SSE 双格式支持
+  - TagAwareBuffer 集成（think/tool_call 标签）
+  - 参考: `openclaw-zero-token/src/zero-token/streams/chatgpt-web-stream.ts`
+
+- [x] **Grok 流解析增强** — 2026-04-11 完成
+  - `src/streams/grok-parser.ts` (135 行)
+  - NDJSON 主格式 + SSE fallback
+  - contentDelta 累积内容 delta 计算
+  - sessionId 追踪 + TagAwareBuffer 集成
+  - 参考: `openclaw-zero-token/src/zero-token/streams/grok-web-stream.ts`
+
+- [x] **GLM / GLM Intl 流解析增强** — 2026-04-11 完成
+  - `src/streams/glm-parser.ts` (270 行，含两个解析器)
+  - GLM: parts[].content[] + data.messages[] 提取 + 累积内容
+  - GLM Intl: SSE + parts[].content[] + fallback 字段
+  - 参考: `openclaw-zero-token/src/zero-token/streams/glm-web-stream.ts` + `glm-intl-web-stream.ts`
+
+- [x] **Qwen / Qwen CN 流解析增强** — 2026-04-11 完成
+  - `src/streams/qwen-parser.ts` (240 行，含两个解析器)
+  - Qwen Intl: choices[0].delta.content + reasoning_content 分离
+  - Qwen CN: data.messages[] 提取 + 累积内容 delta 计算
+  - 参考: `openclaw-zero-token/src/zero-token/streams/qwen-web-stream.ts` + `qwen-cn-web-stream.ts`
+
+- [x] **Perplexity 流解析增强** — 2026-04-11 完成
+  - `src/streams/perplexity-parser.ts` (80 行)
+  - 简单 SSE text/content/delta 提取
+  - 参考: `openclaw-zero-token/src/zero-token/streams/perplexity-web-stream.ts`
+
+- [x] **Gemini DOM 文本工具** — 2026-04-11 完成
+  - `src/streams/gemini-parser.ts` (120 行)
+  - DOM 文本清理 + 多选择器策略 + UI 文本剥离
+  - 注: Gemini 无 REST API，仅 DOM 交互
+  - 参考: `openclaw-zero-token/src/zero-token/streams/gemini-web-stream.ts`
+
+- [x] **src/streams/index.ts 统一导出更新** — 2026-04-11
+  - 导出所有新增 parser | TypeScript 编译零错误 | 构建 143.83 kB
+
 ## P1 — Auth 自动化 ✅ 已完成
 
 - [x] **Chrome 启动脚本** — 2026-04-11 完成
@@ -108,30 +169,13 @@
   - 模型分类（CN_MODELS, STRICT_MODELS, EXCLUDED_MODELS）
   - 参考: `openclaw-zero-token/src/zero-token/tool-calling/` 4 个文件
 
-- [ ] **Doubao 流解析增强** — 移植原版 19KB 流解析器
-  - 参考: `openclaw-zero-token/src/zero-token/streams/doubao-web-stream.ts`
-
-- [ ] **ChatGPT 流解析增强** — 移植原版 15KB 流解析器
-  - Sentinel token 处理
-  - 参考: `openclaw-zero-token/src/zero-token/streams/chatgpt-web-stream.ts`
-
-- [ ] **Gemini 流解析增强** — 移植原版 13KB 流解析器
-  - 参考: `openclaw-zero-token/src/zero-token/streams/gemini-web-stream.ts`
-
-- [ ] **Grok 流解析增强** — 移植原版 15KB 流解析器
-  - 参考: `openclaw-zero-token/src/zero-token/streams/grok-web-stream.ts`
-
-- [ ] **GLM 流解析增强** — 移植原版 19KB (intl: 16KB)
-  - 参考: `openclaw-zero-token/src/zero-token/streams/glm-web-stream.ts`
-
-- [ ] **Qwen 流解析增强** — 移植原版 14KB (cn: 16KB)
-  - 参考: `openclaw-zero-token/src/zero-token/streams/qwen-web-stream.ts`
-
-- [ ] **Perplexity 流解析增强** — 移植原版 7KB
-  - 参考: `openclaw-zero-token/src/zero-token/streams/perplexity-web-stream.ts`
-
-- [ ] **Xiaomi MiMo 流解析增强** — 移植原版 16KB
-  - 参考: `openclaw-zero-token/src/zero-token/streams/xiaomimo-web-stream.ts`
+- [ ] **Provider 集成对接** — 将新 parser 接入各 provider 的 chat() 方法
+  - ChatGPT: 使用 parseChatGPTSSEStream 替换内联 SSE 解析
+  - Grok: 使用 parseGrokSSEStream 替换内联解析
+  - GLM: 使用 parseGLMSSEStream 替换内联解析
+  - Qwen: 使用 parseQwenSSEStream / parseQwenCNSSEStream
+  - Perplexity: 使用 parsePerplexitySSEStream
+  - Gemini: 使用 processGeminiDOMText 统一 DOM 文本处理
 
 ## P3 — 测试与部署
 
@@ -160,6 +204,13 @@
 - [x] **Claude 流解析增强** — 2026-04-11（content_block 事件、thinking 分离、tool_call 标签）
 - [x] **TagAwareBuffer 通用标签解析器** — 2026-04-11（think/thought/thinking + tool_call）
 - [x] **Auth 模块全部完成 (13个)** — 2026-04-11（src/auth/ + index.ts 统一导出）
+- [x] **ChatGPT 流解析增强** — 2026-04-11（chatgpt-parser.ts）
+- [x] **Grok 流解析增强** — 2026-04-11（grok-parser.ts）
+- [x] **GLM / GLM Intl 流解析增强** — 2026-04-11（glm-parser.ts）
+- [x] **Qwen / Qwen CN 流解析增强** — 2026-04-11（qwen-parser.ts）
+- [x] **Perplexity 流解析增强** — 2026-04-11（perplexity-parser.ts）
+- [x] **Gemini DOM 文本工具** — 2026-04-11（gemini-parser.ts）
+- [x] **全部流解析器 TypeScript 编译通过 + 构建通过** — 2026-04-11
 
 ## 源码参考
 

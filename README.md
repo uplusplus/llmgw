@@ -30,6 +30,90 @@
 
 ---
 
+## 快速开始
+
+### 1. 安装
+
+```bash
+git clone https://github.com/uplusplus/llmgw.git
+cd llmgw
+npm install
+```
+
+### 2. 启动 Chrome（调试端口）
+
+Web 类 provider 需要通过 CDP 连接已登录的 Chrome：
+
+```bash
+# Windows
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
+
+# macOS
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
+
+# Linux
+google-chrome --remote-debugging-port=9222
+```
+
+验证 Chrome 就绪：
+
+```bash
+curl http://localhost:9222/json/version
+```
+
+### 3. 抓取登录凭据
+
+在目标平台（如 chatglm.cn）完成登录后，运行凭据抓取脚本自动写入 config.yaml：
+
+```bash
+node scripts/onboard.mjs
+```
+
+按提示选择 provider，脚本会自动提取 Cookie 并更新 `config.yaml`。
+
+### 4. 启动服务
+
+```bash
+# 开发模式（热重载，改代码自动重启）
+npm run dev
+
+# 生产模式
+npm run build
+npm start
+```
+
+服务默认监听 `http://0.0.0.0:8080`。
+
+### 5. 测试接口
+
+```bash
+# 健康检查
+curl http://localhost:8080/health
+
+# 查看可用模型
+curl http://localhost:8080/v1/models
+
+# 测试聊天（流式）
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "glm-4-plus",
+    "messages": [{"role": "user", "content": "你好"}],
+    "stream": true
+  }'
+
+# 测试聊天（非流式）
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "glm-4-plus",
+    "messages": [{"role": "user", "content": "你好"}],
+    "stream": false
+  }'
+```
+
+---
+
 ## 项目结构
 
 ```

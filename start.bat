@@ -61,9 +61,22 @@ call :START_CHROME_CORE
 echo.
 call :OPEN_LOGINS_CORE
 echo.
-echo  Login pages opened. Please log in to each platform.
-echo  Press any key when done logging in...
+echo  Login pages opened in debug Chrome.
+echo  Log in to the platforms you want to use.
+echo.
+echo  IMPORTANT: Do NOT close the Chrome window!
+echo  After logging in, press any key to continue...
 pause >nul
+
+:: Re-verify Chrome is still running before onboard
+echo.
+curl -s -o nul --connect-timeout 1 http://127.0.0.1:%CDP_PORT%/json/version >nul 2>&1
+if errorlevel 1 (
+    echo  [ERROR] Chrome debug lost. Please restart with option [2].
+    pause
+    goto :MENU
+)
+echo  Chrome debug confirmed running.
 call :ONBOARD_CORE
 echo.
 echo  Press any key to start gateway...
@@ -169,25 +182,59 @@ goto :MENU
 :OPEN_LOGINS_CORE
 echo.
 echo  [Login] Opening platform login pages...
-start "" "https://chat.deepseek.com/"
-timeout /t 1 /nobreak >nul
-start "" "https://claude.ai/new"
-timeout /t 1 /nobreak >nul
-start "" "https://chatgpt.com"
-timeout /t 1 /nobreak >nul
-start "" "https://www.kimi.com"
-timeout /t 1 /nobreak >nul
-start "" "https://www.doubao.com/chat/"
-timeout /t 1 /nobreak >nul
-start "" "https://chat.qwen.ai"
-timeout /t 1 /nobreak >nul
-start "" "https://gemini.google.com/app"
-timeout /t 1 /nobreak >nul
-start "" "https://grok.com"
-timeout /t 1 /nobreak >nul
-start "" "https://chatglm.cn"
-timeout /t 1 /nobreak >nul
-start "" "https://chat.z.ai/"
+
+:: Use detected Chrome path if available, otherwise fall back to default browser
+if not defined CHROME_PATH (
+    echo  [WARN] Chrome path not set, opening with default browser.
+    set "LOGIN_CMD=start "" """
+    goto :open_urls_default
+)
+
+:: Verify debug Chrome is running
+curl -s -o nul --connect-timeout 1 http://127.0.0.1:%CDP_PORT%/json/version >nul 2>&1
+if errorlevel 1 (
+    echo  [WARN] Chrome debug not running, opening with default browser.
+    set "LOGIN_CMD=start "" """
+    goto :open_urls_default
+)
+
+:: Open URLs via debug Chrome instance
+echo  Opening via debug Chrome ^(CDP port %CDP_PORT%^)...
+for %%u in (
+    "https://chat.deepseek.com/"
+    "https://claude.ai/new"
+    "https://chatgpt.com"
+    "https://www.kimi.com"
+    "https://www.doubao.com/chat/"
+    "https://chat.qwen.ai"
+    "https://gemini.google.com/app"
+    "https://grok.com"
+    "https://chatglm.cn"
+    "https://chat.z.ai/"
+) do (
+    "!CHROME_PATH!" --remote-debugging-port=%CDP_PORT% --user-data-dir="%CHROME_DATA%" %%u >nul 2>&1
+    timeout /t 1 /nobreak >nul
+)
+goto :open_urls_done
+
+:open_urls_default
+for %%u in (
+    "https://chat.deepseek.com/"
+    "https://claude.ai/new"
+    "https://chatgpt.com"
+    "https://www.kimi.com"
+    "https://www.doubao.com/chat/"
+    "https://chat.qwen.ai"
+    "https://gemini.google.com/app"
+    "https://grok.com"
+    "https://chatglm.cn"
+    "https://chat.z.ai/"
+) do (
+    start "" %%u
+    timeout /t 1 /nobreak >nul
+)
+
+:open_urls_done
 echo  [OK] 10 login pages opened.
 exit /b 0
 

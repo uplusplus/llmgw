@@ -12,7 +12,7 @@ import { WebSocket } from 'ws';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CDP_PORT = process.env.CDP_PORT || 9222;
 // Try IPv6 first (some Chrome builds default to ::1), fall back to IPv4
-const CDP_HOSTS = ['127.0.0.1', '[::1]', 'localhost'];
+const CDP_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
 
 // ─── Provider definitions ──────────────────────────────────────
 const PROVIDERS = [
@@ -32,10 +32,16 @@ const PROVIDERS = [
 ];
 
 // ─── HTTP helpers ──────────────────────────────────────────────
-async function httpGet(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+async function httpGet(url, timeoutMs = 3000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Try each host until one responds to /json/version */

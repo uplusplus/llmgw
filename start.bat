@@ -258,22 +258,15 @@ echo.
 echo  [Onboard] Running auth wizard...
 echo.
 
-:: Check bash availability
-where bash >nul 2>&1
-if errorlevel 1 (
-    echo  [INFO] bash not found. Showing manual auth instructions.
-    goto :manual_auth
-)
-
-:: Try running onboard.sh
-if exist "%SCRIPT_DIR%scripts\onboard.sh" (
-    echo  Running scripts\onboard.sh via bash...
+:: Run onboard.mjs (Node.js — cross-platform, no bash/python needed)
+if exist "%SCRIPT_DIR%scripts\onboard.mjs" (
+    echo  Running auth onboard wizard...
     echo.
-    bash "%SCRIPT_DIR%scripts\onboard.sh"
+    node "%SCRIPT_DIR%scripts\onboard.mjs"
     set "_ONBOARD_RC=!errorlevel!"
     echo.
     if not "!_ONBOARD_RC!"=="0" (
-        echo  [WARN] onboard.sh exited with code !_ONBOARD_RC!
+        echo  [WARN] onboard wizard exited with code !_ONBOARD_RC!
     )
 ) else (
     goto :manual_auth

@@ -11,7 +11,8 @@ import { WebSocket } from 'ws';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CDP_PORT = process.env.CDP_PORT || 9222;
-const CDP_URL = `http://127.0.0.1:${CDP_PORT}`;
+// Try IPv6 first (some Chrome builds default to ::1), fall back to IPv4
+const CDP_HOSTS = ['127.0.0.1', '[::1]', 'localhost'];
 
 // ─── Provider definitions ──────────────────────────────────────
 const PROVIDERS = [
@@ -37,17 +38,28 @@ async function httpGet(url) {
   return res.json();
 }
 
-async function checkChrome() {
+/** Try each host until one responds to /json/version */
+async function findCdpUrl() {
+  for (const host of CDP_HOSTS) {
+    const url = `http://${host}:${CDP_PORT}`;
+    try {
+      await httpGet(`${url}/json/version`);
+      return url;
+    } catch { /* try next */ }
+  }
+  return null;
+}
+
+async function checkChrome(cdpUrl) {
   try {
-    const ver = await httpGet(`${CDP_URL}/json/version`);
-    return ver;
+    return await httpGet(`${cdpUrl}/json/version`);
   } catch {
     return null;
   }
 }
 
-async function getTargets() {
-  return httpGet(`${CDP_URL}/json`);
+async function getTargets(cdpUrl) {
+  return httpGet(`${cdpUrl}/json`);
 }
 
 // ─── CDP helpers ───────────────────────────────────────────────
@@ -84,8 +96,8 @@ function cdpConnect(wsUrl) {
 }
 
 // ─── Cookie extraction ─────────────────────────────────────────
-async function getCookies(domain) {
-  const targets = await getTargets();
+async function getCookies(cdpUrl, domain) {
+  const targets = await getTargets(cdpUrl);
   const tab = targets.find(t => t.type === 'page' && t.url?.includes(domain))
     || targets.find(t => t.type === 'page');
 
@@ -108,8 +120,8 @@ async function getCookies(domain) {
 }
 
 // ─── Bearer token extraction ───────────────────────────────────
-async function extractBearer(domain) {
-  const targets = await getTargets();
+async function extractBearer(cdpUrl, domain) {
+  const targets = await getTargets(cdpUrl);
   const tab = targets.find(t => t.type === 'page' && t.url?.includes(domain))
     || targets.find(t => t.type === 'page');
 
@@ -207,15 +219,16 @@ async function main() {
   console.log('  llmgw — Auth Credential Capture');
   console.log('==========================================\n');
 
-  // Check Chrome
-  console.log(`Checking Chrome at ${CDP_URL}...`);
-  const ver = await checkChrome();
-  if (!ver) {
-    console.error(`✗ Chrome not reachable at ${CDP_URL}`);
+  // Check Chrome — try all possible hosts
+  console.log(`Checking Chrome on port ${CDP_PORT}...`);
+  const cdpUrl = await findCdpUrl();
+  if (!cdpUrl) {
+    console.error(`✗ Chrome not reachable on port ${CDP_PORT} (tried ${CDP_HOSTS.join(', ')})`);
     console.error('  Start Chrome debug mode first (start.bat option [2]).');
     process.exit(1);
   }
-  console.log(`✓ Chrome ${ver['Browser'] || 'connected'}\n`);
+  const ver = await checkChrome(cdpUrl);
+  console.log(`✓ Chrome ${ver?.['Browser'] || 'connected'} at ${cdpUrl}\n`);
 
   // Select providers
   const selected = await askSelection();
@@ -235,8 +248,8 @@ async function main() {
     process.stdout.write(`── ${provider.name} (${provider.id}) ... `);
 
     try {
-      const cookie = await getCookies(provider.domain);
-      const bearer = await extractBearer(provider.domain).catch(() => null);
+      const cookie = await getCookies(cdpUrl, provider.domain);
+      const bearer = await extractBearer(cdpUrl, provider.domain).catch(() => null);
 
       if (cookie) {
         console.log('✓ captured');

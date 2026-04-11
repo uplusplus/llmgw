@@ -2,6 +2,9 @@
 /**
  * Gemini Web Provider — cookie auth, DOM interaction via Playwright CDP.
  * Ported from openclaw-zero-token.
+ *
+ * Gemini has no REST API — pure DOM interaction. DOM text is post-processed
+ * via processGeminiDOMText (TagAwareBuffer) for think/tool_call tag extraction.
  */
 
 import { chromium, type BrowserContext, type Page } from "playwright-core";
@@ -20,7 +23,7 @@ import {
 import {
   cleanGeminiText,
   stripGeminiUI,
-  GEMINI_MODEL_SELECTORS,
+  processGeminiDOMText,
   GEMINI_STOP_SELECTORS,
 } from "../streams/gemini-parser.js";
 
@@ -121,39 +124,47 @@ export class GeminiProvider implements ProviderAdapter {
       let lastText = "";
       let stableCount = 0;
 
+      // Model response selectors (ordered by specificity)
+      const modelSelectors = [
+        "model-response message-content",
+        '[data-message-author="model"] .message-content',
+        '[data-message-author="model"]',
+        '[data-sender="model"]',
+        '[class*="model-response"] [class*="markdown"]',
+        '[class*="model-response"]',
+      ];
+
       for (let elapsed = 0; elapsed < maxWaitMs; elapsed += 2000) {
         await page.waitForTimeout(2000);
 
-        const result = await page.evaluate(() => {
-          const clean = (t: string) => t.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
-          const stripTrailingUI = (t: string) =>
-            t.replace(/\n?\s*(复制|分享|修改|朗读|Copy|Share|Edit|Read aloud)[\s\n]*/gi, "").replace(/\s+$/, "");
+        const result = await page.evaluate(
+          ({ modelSelectors, stopSelectors }: { modelSelectors: string[]; stopSelectors: string[] }) => {
+            const clean = (t: string) => t.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
 
-          const modelSelectors = [
-            "model-response message-content",
-            '[data-message-author="model"] .message-content',
-            '[data-message-author="model"]',
-            '[data-sender="model"]',
-            '[class*="model-response"] [class*="markdown"]',
-            '[class*="model-response"]',
-          ];
+            let text = "";
+            for (const sel of modelSelectors) {
+              const els = document.querySelectorAll(sel);
+              for (let i = els.length - 1; i >= 0; i--) {
+                const t = clean((els[i] as HTMLElement).innerText ?? "");
+                if (t.length >= 30) {
+                  text = t;
+                  break;
+                }
+              }
+              if (text) break;
+            }
 
-          let text = "";
-          for (const sel of modelSelectors) {
-            const els = document.querySelectorAll(sel);
-            for (let i = els.length - 1; i >= 0; i--) {
-              const t = clean((els[i] as HTMLElement).innerText ?? "");
-              if (t.length >= 30) {
-                text = stripTrailingUI(t);
+            let isStreaming = false;
+            for (const sel of stopSelectors) {
+              if (document.querySelector(sel)) {
+                isStreaming = true;
                 break;
               }
             }
-            if (text) break;
-          }
-
-          const isStreaming = !!document.querySelector('[aria-label*="Stop"], [aria-label*="停止"]');
-          return { text, isStreaming };
-        });
+            return { text, isStreaming };
+          },
+          { modelSelectors, stopSelectors: GEMINI_STOP_SELECTORS },
+        );
 
         if (result.text && result.text.length >= 40) {
           if (result.text !== lastText) {
@@ -168,7 +179,34 @@ export class GeminiProvider implements ProviderAdapter {
 
       if (!lastText) throw new Error("Gemini: no response detected");
 
-      callbacks.onText(lastText);
+      // Post-process DOM text through processGeminiDOMText
+      // This cleans UI artifacts and extracts think/tool_call tags via TagAwareBuffer
+      let emitted = false;
+      for (const chunk of processGeminiDOMText(lastText)) {
+        emitted = true;
+        switch (chunk.type) {
+          case "text":
+            if (chunk.content) callbacks.onText(chunk.content);
+            break;
+          case "thinking":
+            if (chunk.content) callbacks.onReasoning(chunk.content);
+            break;
+          case "tool_call":
+            if (chunk.toolCall) callbacks.onToolCall({
+              id: chunk.toolCall.id,
+              type: "function",
+              function: { name: chunk.toolCall.name, arguments: chunk.toolCall.arguments },
+            });
+            break;
+        }
+      }
+
+      // Fallback: if processGeminiDOMText yielded nothing, emit cleaned text directly
+      if (!emitted) {
+        const cleaned = stripGeminiUI(cleanGeminiText(lastText));
+        if (cleaned) callbacks.onText(cleaned);
+      }
+
       callbacks.onDone();
     } catch (err) {
       callbacks.onError(err instanceof Error ? err : new Error(String(err)));

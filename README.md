@@ -171,7 +171,7 @@ BrowserManager 启动/连接 Chrome → CDP WebSocket URL
 
 ## 开发进度
 
-> 详细 TODO 见 [TODO.md](./TODO.md)。总体完成度约 **85%**。
+> 详细 TODO 见 [TODO.md](./TODO.md)。总体完成度约 **95%**。
 
 ### 进度总览 (2026-04-11 13:00)
 
@@ -179,9 +179,9 @@ BrowserManager 启动/连接 Chrome → CDP WebSocket URL
 |------|------|--------|
 | 基础架构 (脚手架/Browser/HTTP/配置) | ✅ 完成 | 100% |
 | Provider 基础实现 (14 个) | ✅ 完成 | 100% |
-| P0 流解析增强 | 🔄 进行中 | 55% (DeepSeek ✅, Claude ✅ enhanced, Kimi ✅) |
+| P0 流解析增强 | ✅ 完成 | 100% |
 | P1 Auth 自动化 | ✅ 完成 | 100% (13/13 模块已创建) |
-| P2 功能增强 | ⏳ 待开发 | 10% (TagAwareBuffer 通用化) |
+| P2 功能增强 | 🔄 进行中 | 50% (Provider 集成对接完成) |
 | P3 测试部署 | ⏳ 待开发 | 0% |
 
 ### 已完成 ✅
@@ -207,24 +207,15 @@ BrowserManager 启动/连接 Chrome → CDP WebSocket URL
 
 #### P0 — 流解析增强（影响响应质量）
 
-DeepSeek ✅, Claude ✅, Kimi ✅ 已完成。其余 provider 使用通用 SSE 解析器，缺少平台特定处理：
+DeepSeek ✅, Claude ✅, Kimi ✅ 已完成。所有 provider 流解析增强及集成对接已全部完成：
 
-- [x] **通用 `TagAwareStreamParser`** ✅ — think/thought/thinking 多标签 + tool_call 标签
-- [x] **Claude** ✅ — content_block 事件序列、thinking 分离、tool_call XML 标签
-- [x] **Kimi** ✅ — op 字段处理、thinking 块、二进制帧协议
-- [ ] **Doubao** — 完整流解析（原版 19KB）
-- [ ] **ChatGPT** — Sentinel token 处理（原版 15KB）
-- [ ] **Gemini** — 多选择器 DOM 解析（原版 13KB）
-- [ ] **Grok** — REST API + DOM fallback（原版 15KB）
-- [ ] **GLM / GLM Intl** — X-Sign 签名 + DOM 交互（原版 19KB + 16KB）
-- [ ] **Qwen / Qwen CN** — page.evaluate fetch 解析（原版 14KB + 16KB）
-- [ ] **Perplexity** — DOM 交互（原版 7KB）
-- [ ] **Xiaomi MiMo** — REST SSE 解析（原版 16KB）
+- [x] **通用 `TagAwareStreamParser`** ✅
+- [x] **所有 Provider 流解析增强 + 集成对接** ✅ — 2026-04-11
+  - DeepSeek, Claude, Kimi, Doubao, MiMo, ChatGPT, Grok, GLM, GLM Intl, Qwen, Qwen CN, Perplexity, Gemini
 
 #### P2 — 功能增强
 
 - [ ] Tool calling 中间件完善（CN/EN/Strict 模板增强）
-- [ ] 其余 provider 流解析增强（见 P0 列表）
 
 #### P3 — 测试与部署
 

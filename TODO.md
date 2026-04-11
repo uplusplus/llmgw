@@ -7,12 +7,12 @@
 | 阶段 | 状态 | 完成度 |
 |------|------|--------|
 | 基础架构 | ✅ 完成 | 100% |
-| P0 核心健壮性 | 🔄 进行中 | 90% (仅剩 provider 集成对接) |
+| P0 核心健壮性 | ✅ 完成 | 100% (全部 parser 已创建并集成) |
 | P1 Auth 自动化 | ✅ 完成 | 100% (13/13 模块已创建) |
-| P2 功能增强 | 🔄 进行中 | 20% |
+| P2 功能增强 | 🔄 进行中 | 50% (Provider 集成对接完成)
 | P3 测试部署 | ⏳ 待开发 | 0% |
 
-**总体完成度: ~90%**
+**总体完成度: ~95%**
 
 ## P0 — 核心健壮性
 
@@ -162,6 +162,16 @@
   - [x] `src/auth/index.ts` — 统一导出
 
 ## P2 — 功能增强
+
+- [x] **Provider 集成对接** — 2026-04-11 完成
+  - ChatGPT: ✅ 已使用 parseChatGPTSSEStream
+  - Grok: ✅ 已使用 parseGrokSSEStream
+  - GLM: ✅ 已使用 parseGLMSSEStream
+  - Qwen: ✅ 已使用 parseQwenSSEStream
+  - Qwen CN: ✅ 已使用 parseQwenCNSSEStream
+  - Perplexity: ✅ 新增 REST API + parsePerplexitySSEStream，DOM fallback 保留
+  - GLM Intl: ✅ 新增 REST API + parseGLMIntlSSEStream，DOM fallback + TagAwareBuffer 后处理
+  - Gemini: ✅ DOM 文本通过 processGeminiDOMText 后处理（think/tool_call 标签提取）
 
 - [ ] **Tool calling 中间件完善** — 移植原版更丰富的实现：
   - CN/EN/Strict 三种模板（当前只有简化版）

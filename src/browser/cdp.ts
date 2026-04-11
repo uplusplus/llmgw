@@ -26,7 +26,7 @@ export function isWebSocketUrl(url: string): boolean {
 }
 
 export function cdpUrlForPort(port: number): string {
-  return `http://127.0.0.1:${port}`;
+  return `http://localhost:${port}`;
 }
 
 export function appendCdpPath(cdpUrl: string, subPath: string): string {

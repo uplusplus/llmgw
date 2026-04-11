@@ -95,7 +95,7 @@ echo "Chrome PID: $CHROME_PID"
 # ─── Wait for CDP ready ──────────────────────────────────────
 echo -n "Waiting for Chrome"
 for i in $(seq 1 15); do
-  if curl -sf "http://127.0.0.1:$PORT/json/version" > /dev/null 2>&1; then
+  if curl -sf "http://localhost:$PORT/json/version" > /dev/null 2>&1; then
     echo " ✓"
     break
   fi
@@ -103,16 +103,16 @@ for i in $(seq 1 15); do
   sleep 1
 done
 
-if ! curl -sf "http://127.0.0.1:$PORT/json/version" > /dev/null 2>&1; then
+if ! curl -sf "http://localhost:$PORT/json/version" > /dev/null 2>&1; then
   echo ""
   echo "✗ Chrome failed to start. Check port $PORT."
   exit 1
 fi
 
-BROWSER=$(curl -sf "http://127.0.0.1:$PORT/json/version" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Browser','?'))" 2>/dev/null || echo "?")
+BROWSER=$(curl -sf "http://localhost:$PORT/json/version" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Browser','?'))" 2>/dev/null || echo "?")
 echo ""
 echo "✓ Chrome running: $BROWSER"
-echo "  CDP: http://127.0.0.1:$PORT"
+echo "  CDP: http://localhost:$PORT"
 echo ""
 
 # ─── Open login tabs ─────────────────────────────────────────

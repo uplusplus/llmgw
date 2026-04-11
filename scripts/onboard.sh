@@ -7,7 +7,7 @@ set -e
 
 CDP_PORT="${CDP_PORT:-9222}"
 CONFIG_FILE="${LLMGW_CONFIG:-$(dirname "$0")/../config.yaml}"
-CDP_URL="http://127.0.0.1:$CDP_PORT"
+CDP_URL="http://localhost:$CDP_PORT"
 
 echo "=========================================="
 echo "  llmgw — Auth Credential Capture"
@@ -69,7 +69,7 @@ port = int(sys.argv[1])
 domain = sys.argv[2]
 
 # Get list of targets (tabs)
-conn = http.client.HTTPConnection("127.0.0.1", port)
+conn = http.client.HTTPConnection("localhost", port)
 conn.request("GET", "/json")
 targets = json.loads(conn.getresponse().read())
 
@@ -130,7 +130,7 @@ import sys, json, http.client, asyncio
 port = int(sys.argv[1])
 domain = sys.argv[2]
 
-conn = http.client.HTTPConnection("127.0.0.1", port)
+conn = http.client.HTTPConnection("localhost", port)
 conn.request("GET", "/json")
 targets = json.loads(conn.getresponse().read())
 

@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsdown",
-    "start": "node dist/server.js",
+    "start": "node dist/server.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

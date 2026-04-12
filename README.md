@@ -34,11 +34,19 @@
 
 ### 一键安装（推荐）
 
+**Linux / macOS：**
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/uplusplus/zero-token/main/install.sh | sudo bash
 ```
 
-脚本会自动完成：检测/安装 Node.js → 安装 Chromium → 克隆仓库 → 安装依赖 → 构建 → 注册 systemd 服务。
+**Windows（管理员 PowerShell）：**
+
+```powershell
+irm https://raw.githubusercontent.com/uplusplus/zero-token/main/install.ps1 | iex
+```
+
+脚本会自动完成：检测/安装 Node.js → 安装依赖 → 构建 → 注册系统服务 → 启动。
 
 安装后服务自动启动，访问 `http://localhost:8080`。
 

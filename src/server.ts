@@ -240,11 +240,11 @@ async function main() {
   serve(
     { fetch: app.fetch, hostname: config.server.host, port: config.server.port },
     (info) => {
-      console.log(`\n🚀 Zero Token Service running on http://${info.address}:${info.port}`);
+      console.log(`\n🚀 Zero Token Service running on http://localhost:${info.port}`);
       console.log(`\nOpenAI-compatible endpoints:`);
-      console.log(`  POST http://${info.address}:${info.port}/v1/chat/completions`);
-      console.log(`  GET  http://${info.address}:${info.port}/v1/models`);
-      console.log(`  GET  http://${info.address}:${info.port}/health`);
+      console.log(`  POST http://localhost:${info.port}/v1/chat/completions`);
+      console.log(`  GET  http://localhost:${info.port}/v1/models`);
+      console.log(`  GET  http://localhost:${info.port}/health`);
       console.log("");
     },
   );

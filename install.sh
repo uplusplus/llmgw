@@ -201,6 +201,9 @@ if [ -n "$CHROME_PATH" ]; then
     ok "Chrome 已在运行 (CDP: http://localhost:$CDP_PORT)，跳过启动"
   else
     mkdir -p "$CHROME_DATA_DIR"
+    # 清理 singleton lock，避免"Opening in existing browser session"导致退出
+    rm -f "$CHROME_DATA_DIR/SingletonLock" "$CHROME_DATA_DIR/SingletonCookie" 2>/dev/null
+
     "$CHROME_PATH" "${CHROME_ARGS[@]}" > /dev/null 2>&1 &
     CHROME_PID=$!
     ok "Chrome 启动中 (PID: $CHROME_PID) ..."

@@ -195,31 +195,38 @@ if [ -n "$CHROME_PATH" ]; then
     --disable-dev-shm-usage
   )
 
-  if [ "$HAS_DISPLAY" -eq 0 ]; then
-    # 无图形环境（服务器/WSL），使用 headless + 远程调试
-    CHROME_ARGS+=(--headless --disable-gpu)
-    "$CHROME_PATH" "${CHROME_ARGS[@]}" &
-    CHROME_PID=$!
-    ok "Chrome 已启动 (headless 模式, PID: $CHROME_PID, CDP: http://localhost:$CDP_PORT)"
+  # 检查 Chrome 是否已经在运行（CDP 端口已监听）
+  if curl -sf "http://localhost:$CDP_PORT/json/version" > /dev/null 2>&1; then
+    ok "Chrome 已在运行 (CDP: http://localhost:$CDP_PORT)，跳过启动"
   else
-    # 有图形环境，前台打开 Chrome 供交互登录
-    "$CHROME_PATH" "${CHROME_ARGS[@]}" &
-    CHROME_PID=$!
-    ok "Chrome 已启动 (PID: $CHROME_PID, CDP: http://localhost:$CDP_PORT)"
+    if [ "$HAS_DISPLAY" -eq 0 ]; then
+      # 无图形环境（服务器/WSL），使用 headless + 远程调试
+      CHROME_ARGS+=(--headless --disable-gpu)
+      "$CHROME_PATH" "${CHROME_ARGS[@]}" &
+      CHROME_PID=$!
+      ok "Chrome 已启动 (headless 模式, PID: $CHROME_PID, CDP: http://localhost:$CDP_PORT)"
+    else
+      # 有图形环境，前台打开 Chrome 供交互登录
+      "$CHROME_PATH" "${CHROME_ARGS[@]}" &
+      CHROME_PID=$!
+      ok "Chrome 已启动 (PID: $CHROME_PID, CDP: http://localhost:$CDP_PORT)"
+    fi
+
+    # 等待 Chrome CDP 就绪
+    info "等待 Chrome 就绪 ..."
+    for i in $(seq 1 15); do
+      if curl -sf "http://localhost:$CDP_PORT/json/version" > /dev/null 2>&1; then
+        break
+      fi
+      sleep 1
+    done
+
+    if ! curl -sf "http://localhost:$CDP_PORT/json/version" > /dev/null 2>&1; then
+      warn "Chrome 未就绪，跳过自动导航"
+    fi
   fi
 
-  # 等待 Chrome CDP 就绪
-  info "等待 Chrome 就绪 ..."
-  for i in $(seq 1 15); do
-    if curl -sf "http://localhost:$CDP_PORT/json/version" > /dev/null 2>&1; then
-      break
-    fi
-    sleep 1
-  done
-
-  if ! curl -sf "http://localhost:$CDP_PORT/json/version" > /dev/null 2>&1; then
-    warn "Chrome 未就绪，跳过自动导航"
-  else
+  if curl -sf "http://localhost:$CDP_PORT/json/version" > /dev/null 2>&1; then
     ok "Chrome CDP 就绪"
 
     # 自动打开各 provider 登录页
@@ -240,7 +247,6 @@ if [ -n "$CHROME_PATH" ]; then
 
     info "自动打开 Provider 登录页 ..."
     for url in "${PROVIDER_URLS[@]}"; do
-      # 通过 CDP 创建新标签页并导航
       python3 -c "
 import json, http.client
 conn = http.client.HTTPConnection('localhost', $CDP_PORT)
@@ -295,6 +301,8 @@ cleanup() {
   if [ -n "$CHROME_PID" ] && kill -0 "$CHROME_PID" 2>/dev/null; then
     kill "$CHROME_PID" 2>/dev/null || true
     ok "Chrome 已停止"
+  else
+    info "Chrome 非本脚本启动，保持运行"
   fi
   ok "zero-token 已停止"
   exit 0

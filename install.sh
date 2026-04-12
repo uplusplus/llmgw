@@ -198,9 +198,12 @@ if [ -d "$INSTALL_DIR" ]; then
   if [ -d ".git" ]; then
     # 暂存用户配置
     [ -f config.yaml ] && cp config.yaml config.yaml.bak
-    GIT_SSL_BACKEND=openssl git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 fetch origin main 2>/dev/null \
-      && git reset --hard origin/main 2>/dev/null \
-      || warn "拉取更新失败，保留当前版本"
+    if ! GIT_SSL_BACKEND=openssl git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 fetch origin main 2>&1; then
+      warn "fetch 失败，尝试 reset 本地 ..."
+    fi
+    if ! git reset --hard origin/main 2>&1; then
+      warn "reset 失败，保留当前版本"
+    fi
     # 恢复用户配置
     [ -f config.yaml.bak ] && mv config.yaml.bak config.yaml
   fi

@@ -136,8 +136,10 @@ if (Test-Path $INSTALL_DIR) {
     if (Test-Path ".git") {
         try {
             if (Test-Path "config.yaml") { Copy-Item config.yaml config.yaml.bak }
-            git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 fetch origin main 2>$null
-            git reset --hard origin/main 2>$null
+            $fetchResult = git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 fetch origin main 2>&1
+            if ($LASTEXITCODE -ne 0) { Write-Warn "fetch 失败: $fetchResult" }
+            $resetResult = git reset --hard origin/main 2>&1
+            if ($LASTEXITCODE -ne 0) { Write-Warn "reset 失败: $resetResult" }
             if (Test-Path "config.yaml.bak") { Move-Item config.yaml.bak config.yaml -Force }
             Write-Ok "已更新"
         } catch {

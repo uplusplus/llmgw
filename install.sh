@@ -201,17 +201,68 @@ if [ -n "$CHROME_PATH" ]; then
     "$CHROME_PATH" "${CHROME_ARGS[@]}" &
     CHROME_PID=$!
     ok "Chrome 已启动 (headless 模式, PID: $CHROME_PID, CDP: http://localhost:$CDP_PORT)"
-    echo ""
-    echo -e "  ${YELLOW}无图形环境，使用 headless 模式${NC}"
-    echo -e "  ${YELLOW}请从本机浏览器打开 http://localhost:$CDP_PORT/json/version 确认 Chrome 已就绪${NC}"
-    echo -e "  ${YELLOW}凭据抓取将通过脚本自动完成，完成后按任意键继续...${NC}"
   else
     # 有图形环境，前台打开 Chrome 供交互登录
     "$CHROME_PATH" "${CHROME_ARGS[@]}" &
     CHROME_PID=$!
     ok "Chrome 已启动 (PID: $CHROME_PID, CDP: http://localhost:$CDP_PORT)"
+  fi
+
+  # 等待 Chrome CDP 就绪
+  info "等待 Chrome 就绪 ..."
+  for i in $(seq 1 15); do
+    if curl -sf "http://localhost:$CDP_PORT/json/version" > /dev/null 2>&1; then
+      break
+    fi
+    sleep 1
+  done
+
+  if ! curl -sf "http://localhost:$CDP_PORT/json/version" > /dev/null 2>&1; then
+    warn "Chrome 未就绪，跳过自动导航"
+  else
+    ok "Chrome CDP 就绪"
+
+    # 自动打开各 provider 登录页
+    PROVIDER_URLS=(
+      "https://chat.deepseek.com"
+      "https://claude.ai"
+      "https://kimi.com"
+      "https://doubao.com"
+      "https://xiaomimo.ai"
+      "https://chat.qwen.ai"
+      "https://chatglm.cn"
+      "https://chat.z.ai"
+      "https://perplexity.ai"
+      "https://chatgpt.com"
+      "https://gemini.google.com"
+      "https://grok.com"
+    )
+
+    info "自动打开 Provider 登录页 ..."
+    for url in "${PROVIDER_URLS[@]}"; do
+      # 通过 CDP 创建新标签页并导航
+      python3 -c "
+import json, http.client
+conn = http.client.HTTPConnection('localhost', $CDP_PORT)
+conn.request('PUT', '/json/new?$url')
+resp = conn.getresponse()
+conn.close()
+" 2>/dev/null || true
+    done
+    ok "已打开 ${#PROVIDER_URLS[@]} 个 Provider 登录页"
+  fi
+
+  echo ""
+  if [ "$HAS_DISPLAY" -eq 0 ]; then
+    echo -e "  ${YELLOW}headless 模式：Chrome 已打开各 Provider 页面${NC}"
+    echo -e "  ${YELLOW}请通过 SSH 隧道或在 Windows 侧用 Chrome 访问 ${CDP_PORT} 端口完成登录${NC}"
+    echo -e "  ${YELLOW}或者：在本地电脑运行以下命令建立隧道后用浏览器操作：${NC}"
+    echo -e "  ${CYAN}  ssh -L 9222:localhost:${CDP_PORT} $(whoami)@$(hostname)${NC}"
+    echo -e "  ${YELLOW}然后在本地 Chrome 地址栏打开: chrome://inspect${NC}"
     echo ""
-    echo -e "  ${YELLOW}请在 Chrome 窗口中登录你需要的平台（DeepSeek / Claude / ChatGPT 等）${NC}"
+    echo -e "  ${YELLOW}登录完成后，按任意键继续...${NC}"
+  else
+    echo -e "  ${YELLOW}请在各 Chrome 标签页中登录你需要的平台${NC}"
     echo -e "  ${YELLOW}登录完成后，按任意键继续...${NC}"
   fi
   read -n 1 -s -r

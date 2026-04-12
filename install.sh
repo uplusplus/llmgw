@@ -172,7 +172,7 @@ echo ""
 
 # 先启动 Chrome（前台，非 headless，供用户交互登录）
 CHROME_PID=""
-CHROME_DATA_DIR="/tmp/zero-token-chrome-data"
+CHROME_DATA_DIR="${HOME}/.zero-token/chrome-data"
 
 if [ -n "$CHROME_PATH" ]; then
   CHROME_ARGS=(

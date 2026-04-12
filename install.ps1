@@ -134,17 +134,17 @@ if (Test-Path $INSTALL_DIR) {
     Write-Info "更新已有安装..."
     Set-Location $INSTALL_DIR
     if (Test-Path ".git") {
-        try {
-            if (Test-Path "config.yaml") { Copy-Item config.yaml config.yaml.bak }
-            $fetchResult = git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 fetch origin main 2>&1
-            if ($LASTEXITCODE -ne 0) { Write-Warn "fetch 失败: $fetchResult" }
-            $resetResult = git reset --hard origin/main 2>&1
-            if ($LASTEXITCODE -ne 0) { Write-Warn "reset 失败: $resetResult" }
-            if (Test-Path "config.yaml.bak") { Move-Item config.yaml.bak config.yaml -Force }
-            Write-Ok "已更新"
-        } catch {
-            Write-Warn "拉取更新失败，保留当前版本"
-        }
+        if (Test-Path "config.yaml") { Copy-Item config.yaml config.yaml.bak }
+        # git 非零退出不应中断脚本
+        $oldEAP = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        $fetchOut = git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 fetch origin main 2>&1
+        if ($LASTEXITCODE -ne 0) { Write-Warn "fetch 失败:`n$fetchOut" }
+        $resetOut = git reset --hard origin/main 2>&1
+        if ($LASTEXITCODE -ne 0) { Write-Warn "reset 失败:`n$resetOut" }
+        $ErrorActionPreference = $oldEAP
+        if (Test-Path "config.yaml.bak") { Move-Item config.yaml.bak config.yaml -Force }
+        if ($LASTEXITCODE -eq 0) { Write-Ok "已更新" }
     }
 } else {
     Write-Info "下载 zero-token..."
@@ -164,6 +164,9 @@ if (Test-Path $INSTALL_DIR) {
 }
 
 # ── 5. 安装依赖 & 构建 ──────────────────────────────────────
+$oldEAP = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+
 Write-Info "安装依赖..."
 npm ci 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) { npm install 2>&1 | Out-Null }
@@ -171,9 +174,16 @@ Write-Ok "依赖安装完成"
 
 Write-Info "构建项目..."
 npx tsdown 2>&1 | Write-Host
+if ($LASTEXITCODE -ne 0) {
+    Write-Fail "构建失败"
+    Read-Host "按 Enter 退出"
+    exit 1
+}
 Write-Ok "构建完成"
 
 npm prune --omit=dev 2>&1 | Out-Null
+
+$ErrorActionPreference = $oldEAP
 
 # ── 6. 创建启动脚本 ──────────────────────────────────────────
 $startBat = @"

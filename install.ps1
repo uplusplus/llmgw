@@ -33,6 +33,13 @@ if (-not (Test-Admin)) {
     Write-Warn "需要管理员权限，正在重新启动..."
     $scriptPath = $PSCommandPath
     if (-not $scriptPath) { $scriptPath = $MyInvocation.MyCommand.Path }
+    if (-not $scriptPath) {
+        # irm | iex 模式：下载脚本到临时文件再提权运行
+        $scriptPath = "$env:TEMP\zero-token-install.ps1"
+        $scriptUrl = "https://raw.githubusercontent.com/uplusplus/zero-token/main/install.ps1"
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $scriptUrl -OutFile $scriptPath -UseBasicParsing
+    }
     Start-Process powershell.exe -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -File `"$scriptPath`""
     exit
 }
@@ -129,7 +136,10 @@ if (Test-Path $INSTALL_DIR) {
     Set-Location $INSTALL_DIR
     if (Test-Path ".git") {
         try {
-            git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 pull --ff-only 2>$null
+            if (Test-Path "config.yaml") { Copy-Item config.yaml config.yaml.bak }
+            git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 fetch origin main 2>$null
+            git reset --hard origin/main 2>$null
+            if (Test-Path "config.yaml.bak") { Move-Item config.yaml.bak config.yaml -Force }
             Write-Ok "已更新"
         } catch {
             Write-Warn "拉取更新失败，保留当前版本"

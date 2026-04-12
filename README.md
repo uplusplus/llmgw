@@ -1,4 +1,4 @@
-# llmgw
+# ZeroToken
 
 从 [openclaw-zero-token](https://github.com/linuxhsj/openclaw-zero-token) 提取核心功能，独立为轻量服务，提供 OpenAI 兼容接口。
 

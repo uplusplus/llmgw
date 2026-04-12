@@ -341,7 +341,7 @@ fi
 if [ -f "$INSTALL_DIR/scripts/onboard.mjs" ]; then
   info "抓取登录凭据 ..."
   cd "$INSTALL_DIR"
-  node scripts/onboard.mjs || warn "凭据抓取失败，可稍后手动运行: cd $INSTALL_DIR && node scripts/onboard.mjs"
+  node scripts/onboard.mjs --all || warn "凭据抓取失败，可稍后手动运行: cd $INSTALL_DIR && node scripts/onboard.mjs"
 fi
 
 echo ""

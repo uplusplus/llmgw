@@ -197,6 +197,12 @@ async function extractBearer(cdpUrl, domain) {
 
 // ─── Interactive selection (stdin) ─────────────────────────────
 function askSelection() {
+  // Non-interactive (piped stdin, --all flag): capture all providers
+  if (!process.stdin.isTTY || process.argv.includes('--all')) {
+    console.log('Non-interactive mode — capturing all providers.\n');
+    return Promise.resolve(PROVIDERS.map(p => p.id));
+  }
+
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
     process.stdout.write('\nProviders:\n');

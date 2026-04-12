@@ -137,13 +137,87 @@ if [ ! -f "config.yaml" ]; then
   cp config.yaml.example config.yaml 2>/dev/null || true
 fi
 
-# ── 5. 注册 systemd 服务 ────────────────────────────────────
-info "注册系统服务 ..."
+# ── 5. 注册 Chrome Debug 系统服务 ────────────────────────────
+info "配置 Chrome Debug 模式 ..."
+
+CHROME_DATA_DIR="/var/lib/zero-token/chrome-data"
+CHROME_SERVICE="zero-token-chrome"
+CDP_PORT="${CDP_PORT:-9222}"
+
+# 检测 Chrome 路径
+detect_chrome() {
+  local linux_paths=(
+    "/opt/google/chrome/google-chrome"
+    "/usr/bin/google-chrome"
+    "/usr/bin/google-chrome-stable"
+    "/usr/bin/chromium"
+    "/usr/bin/chromium-browser"
+    "/snap/bin/chromium"
+  )
+  for p in "${linux_paths[@]}"; do
+    [ -f "$p" ] && echo "$p" && return
+  done
+  for cmd in google-chrome google-chrome-stable chromium chromium-browser; do
+    command -v "$cmd" >/dev/null 2>&1 && echo "$(command -v "$cmd")" && return
+  done
+  echo ""
+}
+
+CHROME_PATH=$(detect_chrome)
+
+if [ -z "$CHROME_PATH" ]; then
+  warn "未找到 Chrome/Chromium，Web 类 Provider 不可用"
+  warn "稍后可手动安装并启动: chrome --remote-debugging-port=$CDP_PORT"
+else
+  ok "Chrome: $CHROME_PATH"
+
+  mkdir -p "$CHROME_DATA_DIR"
+
+  cat > "/etc/systemd/system/${CHROME_SERVICE}.service" <<EOF
+[Unit]
+Description=Chrome Debug Mode for zero-token
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=${CHROME_PATH} \\
+  --remote-debugging-port=${CDP_PORT} \\
+  --user-data-dir=${CHROME_DATA_DIR} \\
+  --no-first-run \\
+  --no-default-browser-check \\
+  --disable-background-networking \\
+  --disable-sync \\
+  --disable-translate \\
+  --remote-allow-origins=* \\
+  --headless \\
+  --no-sandbox \\
+  --disable-gpu \\
+  --disable-dev-shm-usage
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  systemctl daemon-reload
+  systemctl enable "$CHROME_SERVICE"
+  systemctl restart "$CHROME_SERVICE"
+  ok "Chrome Debug 服务已启动 (CDP port: $CDP_PORT)"
+fi
+
+# ── 6. 注册 zero-token 主服务 ────────────────────────────────
+info "注册 zero-token 主服务 ..."
+
+AFTER_DEPS="network-online.target"
+if [ -n "$CHROME_PATH" ]; then
+  AFTER_DEPS="${AFTER_DEPS} ${CHROME_SERVICE}.service"
+fi
 
 cat > "/etc/systemd/system/${SERVICE_NAME}.service" <<EOF
 [Unit]
 Description=zero-token — OpenAI-compatible gateway
-After=network-online.target
+After=${AFTER_DEPS}
 Wants=network-online.target
 
 [Service]
@@ -158,7 +232,7 @@ Environment=SERVER_PORT=${SERVER_PORT}
 # 安全加固
 NoNewPrivileges=true
 ProtectSystem=strict
-ReadWritePaths=${INSTALL_DIR}
+ReadWritePaths=${INSTALL_DIR} ${CHROME_DATA_DIR}
 PrivateTmp=true
 
 [Install]
@@ -190,7 +264,15 @@ echo -e "    启动:  systemctl start ${SERVICE_NAME}"
 echo -e "    停止:  systemctl stop ${SERVICE_NAME}"
 echo -e "    重启:  systemctl restart ${SERVICE_NAME}"
 echo -e "    日志:  journalctl -u ${SERVICE_NAME} -f"
-echo -e "    卸载:  systemctl disable ${SERVICE_NAME} && rm -rf ${INSTALL_DIR} /etc/systemd/system/${SERVICE_NAME}.service"
+if [ -n "$CHROME_PATH" ]; then
+echo -e "  ${BOLD}Chrome 调试${NC}"
+echo -e "    状态:  systemctl status ${CHROME_SERVICE}"
+echo -e "    重启:  systemctl restart ${CHROME_SERVICE}"
+echo -e "    CDP:   http://localhost:${CDP_PORT}/json/version"
+fi
+echo -e "  ${BOLD}卸载${NC}"
+echo -e "    systemctl disable ${SERVICE_NAME} ${CHROME_SERVICE}"
+echo -e "    rm -rf ${INSTALL_DIR} /etc/systemd/system/${SERVICE_NAME}.service /etc/systemd/system/${CHROME_SERVICE}.service ${CHROME_DATA_DIR}"
 echo ""
 echo -e "  ${BOLD}快速测试${NC}"
 echo -e "    curl http://localhost:${SERVER_PORT}/health"

@@ -338,10 +338,10 @@ else
 fi
 
 # 抓取凭据
-if [ -f "$INSTALL_DIR/scripts/onboard.sh" ]; then
+if [ -f "$INSTALL_DIR/scripts/onboard.mjs" ]; then
   info "抓取登录凭据 ..."
   cd "$INSTALL_DIR"
-  bash scripts/onboard.sh 2>/dev/null || warn "凭据抓取失败，可稍后手动运行: cd $INSTALL_DIR && bash scripts/onboard.sh"
+  node scripts/onboard.mjs || warn "凭据抓取失败，可稍后手动运行: cd $INSTALL_DIR && node scripts/onboard.mjs"
 fi
 
 echo ""

@@ -91,6 +91,12 @@ check_node
 verify_chrome() {
   local path="$1"
   [ ! -f "$path" ] && return 1
+
+  # 排除 Ubuntu 24.04 的 snap 壳脚本（/usr/bin/chromium-browser 是个提示安装 snap 的小脚本）
+  if head -c 512 "$path" 2>/dev/null | grep -q "requires the chromium snap\|snap install chromium\|command_is_valid.*snap"; then
+    return 1
+  fi
+
   # snap 包：检查 snap revision 目录是否存在
   if [[ "$path" == /snap/bin/* ]]; then
     local snap_name

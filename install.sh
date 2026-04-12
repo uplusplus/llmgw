@@ -142,13 +142,45 @@ if [ -z "$CHROME_PATH" ]; then
     warn "未找到可用的 Chrome/Chromium，尝试安装 ..."
     apt-get update -qq 2>/dev/null || true
     if apt-get install -y -qq chromium 2>/dev/null; then
-      CHROME_PATH="/usr/bin/chromium"
-      ok "Chromium 安装成功"
+      # 不要硬编码路径，重新检测实际安装位置
+      CHROME_PATH=$(detect_chrome)
+      if [ -n "$CHROME_PATH" ]; then
+        ok "Chromium 安装成功"
+      else
+        warn "apt 安装完成但未找到可用的 Chromium（可能是 snap 过渡包），尝试 snap 安装 ..."
+      fi
     elif apt-get install -y -qq chromium-browser 2>/dev/null; then
-      CHROME_PATH=$(command -v chromium-browser)
-      ok "Chromium 安装成功"
-    else
-      warn "Chromium 安装失败，Web 类 Provider 不可用"
+      CHROME_PATH=$(detect_chrome)
+      if [ -n "$CHROME_PATH" ]; then
+        ok "Chromium 安装成功"
+      else
+        warn "apt 安装完成但未找到可用的 Chromium，尝试 snap 安装 ..."
+      fi
+    fi
+
+    # 如果 apt 安装没拿到可用的 chromium，尝试 snap
+    if [ -z "$CHROME_PATH" ] && command -v snap &>/dev/null; then
+      info "通过 snap 安装 Chromium ..."
+      snap install chromium 2>/dev/null && sleep 2
+      CHROME_PATH=$(detect_chrome)
+      [ -n "$CHROME_PATH" ] && ok "Chromium (snap) 安装成功"
+    fi
+
+    # 最后兜底：下载 Google Chrome .deb
+    if [ -z "$CHROME_PATH" ] && command -v dpkg &>/dev/null; then
+      info "尝试安装 Google Chrome ..."
+      _arch=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
+      if curl -fsSL --connect-timeout 10 -o /tmp/google-chrome.deb \
+        "https://dl.google.com/linux/direct/google-chrome-stable_current_${_arch}.deb" 2>/dev/null; then
+        apt-get install -y -qq /tmp/google-chrome.deb 2>/dev/null || true
+        rm -f /tmp/google-chrome.deb
+        CHROME_PATH=$(detect_chrome)
+        [ -n "$CHROME_PATH" ] && ok "Google Chrome 安装成功"
+      fi
+    fi
+
+    if [ -z "$CHROME_PATH" ]; then
+      warn "所有安装方式均失败，Web 类 Provider 不可用"
     fi
   fi
 fi

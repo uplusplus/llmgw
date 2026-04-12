@@ -87,7 +87,7 @@ check_node
 
 # ── 2. 安装 Chromium ─────────────────────────────────────────
 if command -v apt-get &>/dev/null; then
-  if ! command -v chromium-browser &>/dev/null && ! command -v chromium &>/dev/null && ! command -v google-chrome &>/dev/null; then
+  if ! command -v chromium &>/dev/null && ! command -v google-chrome &>/dev/null && ! command -v google-chrome-stable &>/dev/null; then
     info "安装 Chromium ..."
     apt-get install -y -qq chromium 2>/dev/null || apt-get install -y -qq chromium-browser 2>/dev/null || warn "Chromium 安装失败，Web 类 Provider 需要手动安装 Chrome"
     ok "Chromium 就绪"
@@ -137,20 +137,30 @@ fi
 
 # ── 5. 检测 Chrome 路径 ──────────────────────────────────────
 detect_chrome() {
+  # 优先使用 dpkg/原生安装的 chrome，跳过 snap 包装器
   local linux_paths=(
     "/opt/google/chrome/google-chrome"
     "/usr/bin/google-chrome"
     "/usr/bin/google-chrome-stable"
     "/usr/bin/chromium"
-    "/usr/bin/chromium-browser"
-    "/snap/bin/chromium"
   )
   for p in "${linux_paths[@]}"; do
     [ -f "$p" ] && echo "$p" && return
   done
-  for cmd in google-chrome google-chrome-stable chromium chromium-browser; do
-    command -v "$cmd" >/dev/null 2>&1 && echo "$(command -v "$cmd")" && return
+  for cmd in google-chrome google-chrome-stable chromium; do
+    if command -v "$cmd" >/dev/null 2>&1; then
+      local p
+      p=$(command -v "$cmd")
+      # 跳过 snap 包装器（/snap/* 或 /usr/bin/chromium-browser 指向 snap）
+      case "$p" in /snap/*) continue;; esac
+      if [ "$cmd" = "chromium-browser" ] && file "$p" 2>/dev/null | grep -q "snap"; then
+        continue
+      fi
+      echo "$p" && return
+    fi
   done
+  # 最后兜底：chromium-browser（可能是 snap，可能不工作）
+  command -v chromium-browser 2>/dev/null && echo "$(command -v chromium-browser)" && return
   echo ""
 }
 

@@ -1,9 +1,9 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
-    zero-token Windows 一键安装脚本
+    zero-token Windows Installer
 .DESCRIPTION
-    自动检测/安装 Node.js、克隆仓库、安装依赖、构建、启动服务
+    Auto-detect/install Node.js, clone repo, install deps, build, and start service
 .EXAMPLE
     irm https://raw.githubusercontent.com/uplusplus/zero-token/main/install.ps1 | iex
 #>

@@ -201,46 +201,44 @@ echo ^|       zero-token  Starting...       ^|
 echo +-------------------------------------+
 echo.
 
-set "CHROME="
-for %%P in (
-    "%ProgramFiles%\Google\Chrome\Application\chrome.exe"
-    "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
-    "%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"
-) do (
-    if exist %%P set "CHROME=%%P"
+set "CHROME_EXE="
+if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" set "CHROME_EXE=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
+if exist "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe" set "CHROME_EXE=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
+if exist "%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe" set "CHROME_EXE=%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"
+
+if not defined CHROME_EXE (
+    echo [WARN] Chrome not found, skipping browser setup
+    goto :start_server
 )
 
-if defined CHROME (
-    echo [INFO] Starting Chrome (CDP port %CDP_PORT%)...
-    start "" "%CHROME%" --remote-debugging-port=%CDP_PORT% --user-data-dir="%USERPROFILE%\.zero-token\chrome-data" --no-first-run --no-default-browser-check --remote-allow-origins=* --no-sandbox
-    timeout /t 3 /nobreak >nul
+echo [INFO] Starting Chrome (CDP port %CDP_PORT%)...
+start "" "%CHROME_EXE%" --remote-debugging-port=%CDP_PORT% --user-data-dir="%USERPROFILE%\.zero-token\chrome-data" --no-first-run --no-default-browser-check --no-sandbox
+timeout /t 3 /nobreak >nul
 
-    echo [INFO] Opening Provider login pages...
-    start "" "%CHROME%" https://chat.deepseek.com
-    start "" "%CHROME%" https://claude.ai
-    start "" "%CHROME%" https://kimi.com
-    start "" "%CHROME%" https://doubao.com
-    start "" "%CHROME%" https://xiaomimo.ai
-    start "" "%CHROME%" https://chat.qwen.ai
-    start "" "%CHROME%" https://chatglm.cn
-    start "" "%CHROME%" https://chat.z.ai
-    start "" "%CHROME%" https://perplexity.ai
-    start "" "%CHROME%" https://chatgpt.com
-    start "" "%CHROME%" https://gemini.google.com
-    start "" "%CHROME%" https://grok.com
+echo [INFO] Opening Provider login pages...
+start "" "%CHROME_EXE%" "https://chat.deepseek.com"
+start "" "%CHROME_EXE%" "https://claude.ai"
+start "" "%CHROME_EXE%" "https://kimi.com"
+start "" "%CHROME_EXE%" "https://doubao.com"
+start "" "%CHROME_EXE%" "https://xiaomimo.ai"
+start "" "%CHROME_EXE%" "https://chat.qwen.ai"
+start "" "%CHROME_EXE%" "https://chatglm.cn"
+start "" "%CHROME_EXE%" "https://chat.z.ai"
+start "" "%CHROME_EXE%" "https://perplexity.ai"
+start "" "%CHROME_EXE%" "https://chatgpt.com"
+start "" "%CHROME_EXE%" "https://gemini.google.com"
+start "" "%CHROME_EXE%" "https://grok.com"
 
-    echo.
-    echo [INFO] Log in to the platforms you need in Chrome tabs
-    echo [INFO] Press any key after logging in...
-    pause >nul
+echo.
+echo [INFO] Log in to the platforms you need in Chrome tabs
+echo [INFO] Press any key after logging in...
+pause >nul
 
-    echo.
-    echo [INFO] Capturing login credentials...
-    node scripts\onboard.mjs --all
-) else (
-    echo [WARN] Chrome not found, skipping Web Provider login
-)
+echo.
+echo [INFO] Capturing login credentials...
+node scripts\onboard.mjs --all
 
+:start_server
 timeout /t 3 /nobreak >nul
 
 echo.
@@ -249,6 +247,7 @@ echo [INFO] Press Ctrl+C to stop
 echo.
 node dist\server.mjs
 "@
+
 
 $startBat | Out-File -FilePath "$INSTALL_DIR\start.bat" -Encoding ASCII
 

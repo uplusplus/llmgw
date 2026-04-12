@@ -212,20 +212,7 @@ Write-Host ""
 if ($chromePath) {
     $chromeDataDir = "$env:USERPROFILE\.zero-token\chrome-data"
 
-    # Kill stale Chrome using our CDP port
-    $oldEAP = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    $existing = Get-Process chrome -ErrorAction SilentlyContinue | Where-Object {
-        $_.CommandLine -like "*--remote-debugging-port=$CDP_PORT*"
-    }
-    if ($existing) {
-        Write-Warn "Stopping stale Chrome process on port $CDP_PORT..."
-        $existing | Stop-Process -Force
-        Start-Sleep -Seconds 2
-    }
-    $ErrorActionPreference = $oldEAP
-
-    # Create chrome data dir & clean singleton locks
+    # Create chrome data dir & clean singleton locks (separate profile = independent instance)
     New-Item -ItemType Directory -Force -Path $chromeDataDir | Out-Null
     Remove-Item "$chromeDataDir\SingletonLock" -Force -ErrorAction SilentlyContinue
     Remove-Item "$chromeDataDir\SingletonCookie" -Force -ErrorAction SilentlyContinue

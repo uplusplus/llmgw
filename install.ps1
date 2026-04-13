@@ -265,7 +265,7 @@ if ($chromePath) {
         for ($i = 1; $i -le 15; $i++) {
             Start-Sleep -Seconds 1
             try {
-                $resp = Invoke-WebRequest -Uri "http://localhost:$CDP_PORT/json/version" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+                $resp = Invoke-WebRequest -Uri "http://localhost:$CDP_PORT/json/version" -UseBasicParsing -TimeoutSec 20 -ErrorAction Stop
                 $content = $resp.Content
                 if ($content -match '"Browser"') {
                     $ready = $true

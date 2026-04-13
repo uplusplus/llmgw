@@ -4,6 +4,9 @@
 server:
   host: "0.0.0.0"
   port: 8080
+  logging:
+    level: info          # debug | info | warn | error
+    accessLog: true      # 打印每条请求的方法、路径、状态码、耗时
 
 browser:
   defaultProfile: "default"

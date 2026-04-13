@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { loadConfig } from "./config.js";
 import { buildCatalog } from "./bridge/catalog.js";
+import { logger, setLogLevel } from "./logger.js";
+import type { LogLevel } from "./logger.js";
 import type {
   ChatCompletionChunk,
   ChatCompletionRequest,
@@ -16,14 +18,42 @@ import type {
 
 const config = loadConfig();
 
+// Init logger
+setLogLevel(config.server.logging.level as LogLevel);
+
 const app = new Hono();
 let providers = new Map<string, ProviderAdapter>();
 let modelIndex = new Map<string, ProviderAdapter>();
 
+// ── Middleware: access log ──
+
+if (config.server.logging.accessLog) {
+  app.use("*", async (c, next) => {
+    const start = Date.now();
+    const { method } = c.req;
+    const path = new URL(c.req.url).pathname;
+
+    await next();
+
+    const ms = Date.now() - start;
+    const status = c.res.status;
+
+    // Log level based on status code
+    const level: LogLevel = status >= 500 ? "error" : status >= 400 ? "warn" : "info";
+    const color = status >= 500 ? "\x1b[31m" : status >= 400 ? "\x1b[33m" : "\x1b[32m";
+    const reset = "\x1b[0m";
+
+    logger[level](
+      `${method} ${path} ${color}${status}${reset} ${ms}ms`,
+      "access",
+    );
+  });
+}
+
 // ── Middleware: error handler ──
 
 app.onError((err, c) => {
-  console.error("[server] Unhandled error:", err);
+  logger.error(err.message, "server", { stack: err.stack });
   const body: ErrorResponse = {
     error: {
       message: err.message,
@@ -226,31 +256,30 @@ function generateId(): string {
 // ── Start ──
 
 async function main() {
-  console.log(`[zero-token-service] Config: ${config.providers.length} provider entries`);
+  logger.info(`Config: ${config.providers.length} provider entries`, "boot");
+  logger.info(`Log level: ${config.server.logging.level}`, "boot");
 
   // Build provider catalog from config
   const catalog = await buildCatalog(config);
   providers = catalog.providers;
   modelIndex = catalog.modelIndex;
 
-  console.log(`[zero-token-service] Active providers: ${[...providers.keys()].join(", ") || "none"}`);
-  console.log(`[zero-token-service] Available models: ${[...modelIndex.keys()].join(", ") || "none"}`);
+  logger.info(`Active providers: ${[...providers.keys()].join(", ") || "none"}`, "boot");
+  logger.info(`Available models: ${[...modelIndex.keys()].join(", ") || "none"}`, "boot");
 
   const { serve } = await import("@hono/node-server");
   serve(
     { fetch: app.fetch, hostname: config.server.host, port: config.server.port },
     (info) => {
-      console.log(`\n🚀 Zero Token Service running on http://localhost:${info.port}`);
-      console.log(`\nOpenAI-compatible endpoints:`);
-      console.log(`  POST http://localhost:${info.port}/v1/chat/completions`);
-      console.log(`  GET  http://localhost:${info.port}/v1/models`);
-      console.log(`  GET  http://localhost:${info.port}/health`);
-      console.log("");
+      logger.info(`Zero Token Service running on http://localhost:${info.port}`, "boot");
+      logger.info(`POST http://localhost:${info.port}/v1/chat/completions`, "boot");
+      logger.info(`GET  http://localhost:${info.port}/v1/models`, "boot");
+      logger.info(`GET  http://localhost:${info.port}/health`, "boot");
     },
   );
 }
 
 main().catch((err) => {
-  console.error("[zero-token-service] Fatal:", err);
+  logger.error(err.message, "boot", { stack: err.stack });
   process.exit(1);
 });

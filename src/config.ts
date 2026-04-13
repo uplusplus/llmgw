@@ -43,6 +43,12 @@ const ProviderConfigSchema = z.object({
 const ServerConfigSchema = z.object({
   host: z.string().default("0.0.0.0"),
   port: z.number().default(8080),
+  logging: z
+    .object({
+      level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+      accessLog: z.boolean().default(true),
+    })
+    .default({}),
 });
 
 export const ConfigSchema = z.object({

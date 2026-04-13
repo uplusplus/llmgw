@@ -171,6 +171,12 @@ $oldEAP = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
 
 Write-Info "Installing dependencies..."
+
+# Remove node_modules and lockfile to avoid stale/trimmed lockfile skipping devDependencies
+# (npm prune --omit=dev on prior runs may have committed a production-only lockfile)
+if (Test-Path "node_modules") { Remove-Item "node_modules" -Recurse -Force }
+if (Test-Path "package-lock.json") { Remove-Item "package-lock.json" -Force }
+
 npm install
 if ($LASTEXITCODE -ne 0) {
     Write-Fail "Dependency installation failed"
